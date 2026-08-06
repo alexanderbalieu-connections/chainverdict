@@ -15,11 +15,13 @@
   "license": "ISC",
   "dependencies": {
     "@coinbase/x402": "^2.1.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "diff": "^9.0.0",
     "express": "^5.2.1",
     "turndown": "^7.2.4",
     "viem": "^2.55.11",
-    "x402-express": "^1.2.0"
+    "x402-express": "^1.2.0",
+    "zod": "^4.4.3"
   },
   "type": "module"
 }
