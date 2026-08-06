@@ -11,6 +11,7 @@ import { tokenVerdict, walletDossier } from "./lib/chain.js";
 import { validateLEI, validateISIN, verifyToken, verifyPayment } from "./lib/institutional.js";
 import { screenAddress } from "./lib/sanctions.js";
 import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
+import { gasOracle, tokenSupply, tokenActivity, blockInfo, portfolio } from "./lib/onchain-data.js";
 
 const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
 const asText = (obj) => ({ content: [{ type: "text", text: JSON.stringify(obj, null, 2) }] });
@@ -114,6 +115,33 @@ function buildServer() {
     description: "Flags homoglyph and edit-distance look-alikes of known brands (c0inbase, b1nance, etc.). $0.005.",
     inputSchema: { domain: z.string(), brands: z.string().optional().describe("comma-separated brand list") }
   }, async ({ domain, brands }) => asText(typosquatCheck(domain, brands)));
+
+  // ---- on-chain data pack (Base reads) ----
+  server.registerTool("data_gas", {
+    title: "Base gas oracle",
+    description: "Live Base gas conditions: base fee, priority fees, congestion, est transfer cost. $0.002.",
+    inputSchema: {}
+  }, async () => asText(await gasOracle()));
+  server.registerTool("data_block", {
+    title: "Latest Base block",
+    description: "Latest block number, timestamp, tx count, gas utilization. $0.001.",
+    inputSchema: {}
+  }, async () => asText(await blockInfo()));
+  server.registerTool("data_token_supply", {
+    title: "Token supply & burn (Base)",
+    description: "Total/circulating/burned supply and burn percentage for an ERC-20 on Base. $0.003.",
+    inputSchema: { address: z.string() }
+  }, async ({ address }) => asText(await tokenSupply(address)));
+  server.registerTool("data_token_activity", {
+    title: "Token transfer activity (Base)",
+    description: "Recent transfer count, volume, unique senders/receivers, activity level. $0.005.",
+    inputSchema: { address: z.string(), blocks: z.number().optional() }
+  }, async ({ address, blocks }) => asText(await tokenActivity(address, blocks || 2000)));
+  server.registerTool("data_portfolio", {
+    title: "Address portfolio (Base)",
+    description: "ETH + canonical token balances (USDC/WETH/cbBTC/EURC) for an address. $0.004.",
+    inputSchema: { address: z.string() }
+  }, async ({ address }) => asText(await portfolio(address)));
 
   return server;
 }

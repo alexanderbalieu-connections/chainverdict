@@ -10,6 +10,7 @@ import { validateLEI, validateISIN, verifyToken, verifyPayment } from "./lib/ins
 import { screenAddress, startSanctionsRefresher } from "./lib/sanctions.js";
 import { signResponses, signingInfo } from "./lib/signing.js";
 import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
+import { gasOracle, tokenSupply, tokenActivity, blockInfo, portfolio } from "./lib/onchain-data.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -47,7 +48,12 @@ const PRICES = {
   "POST /v1/batch/validate": "$0.10",
   "GET /v1/security/email/*": "$0.01",
   "GET /v1/security/tls/*": "$0.01",
-  "GET /v1/security/typosquat/*": "$0.005"
+  "GET /v1/security/typosquat/*": "$0.005",
+  "GET /v1/data/gas": "$0.002",
+  "GET /v1/data/block": "$0.001",
+  "GET /v1/data/supply/*": "$0.003",
+  "GET /v1/data/activity/*": "$0.005",
+  "GET /v1/data/portfolio/*": "$0.004"
 };
 
 if (X402_ENABLED) {
@@ -89,6 +95,11 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 ## Paid endpoints (x402, USDC on Base)
 - GET https://chainverdict.xyz/v1/token/verdict/{address} — token safety verdict on Base, $0.02
 - GET https://chainverdict.xyz/v1/wallet/dossier/{address} — wallet profile, $0.01
+- GET https://chainverdict.xyz/v1/data/gas — live Base gas oracle (base fee, priority fees, congestion), $0.002
+- GET https://chainverdict.xyz/v1/data/block — latest Base block info & utilization, $0.001
+- GET https://chainverdict.xyz/v1/data/supply/{token} — token supply & burn distribution on Base, $0.003
+- GET https://chainverdict.xyz/v1/data/activity/{token} — recent transfer count/volume/unique wallets, $0.005
+- GET https://chainverdict.xyz/v1/data/portfolio/{address} — ETH + canonical token balances, $0.004
 - GET https://chainverdict.xyz/v1/security/email/{domain} — SPF/DMARC/DKIM email-spoofing posture, $0.01
 - GET https://chainverdict.xyz/v1/security/tls/{domain} — live TLS certificate validity/expiry check, $0.01
 - GET https://chainverdict.xyz/v1/security/typosquat/{domain} — brand look-alike/homoglyph structural check, $0.005
@@ -191,6 +202,13 @@ app.post("/v1/batch/validate", (req, res) => {
   const summary = { total: items.length, valid: results.filter(r => r.valid).length, invalid: results.filter(r => r.valid === false).length, errors: results.filter(r => r.error).length };
   res.json({ summary, results });
 });
+
+// ---- Paid: on-chain data pack (direct Base reads, no third-party) ----
+app.get("/v1/data/gas", async (_req, res) => { try { res.json(await gasOracle()); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
+app.get("/v1/data/block", async (_req, res) => { try { res.json(await blockInfo()); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
+app.get("/v1/data/supply/:addr", async (req, res) => { try { res.json(await tokenSupply(req.params.addr)); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
+app.get("/v1/data/activity/:addr", async (req, res) => { try { res.json(await tokenActivity(req.params.addr, Number(req.query.blocks)||2000)); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
+app.get("/v1/data/portfolio/:addr", async (req, res) => { try { res.json(await portfolio(req.params.addr)); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
 
 // ---- Paid: security posture (deterministic DNS/TLS lookups) ----
 app.get("/v1/security/email/:domain", async (req, res) => {
