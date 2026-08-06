@@ -2,6 +2,7 @@ import express from "express";
 import TurndownService from "turndown";
 import * as Diff from "diff";
 import { paymentMiddleware } from "x402-express";
+import { facilitator as cdpFacilitator } from "@coinbase/x402";
 import { validateIBAN, validateVAT, validateBIC } from "./lib/validators.js";
 import { tokenVerdict, walletDossier } from "./lib/chain.js";
 
@@ -11,6 +12,7 @@ app.use(express.json({ limit: "2mb" }));
 const PAY_TO = process.env.PAY_TO_ADDRESS;            // your Base wallet (public address only)
 const NETWORK = process.env.X402_NETWORK || "base";   // "base" (mainnet) or "base-sepolia" (test)
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://x402.org/facilitator";
+const USE_CDP = !!(process.env.CDP_API_KEY_ID && process.env.CDP_API_KEY_SECRET);
 const X402_ENABLED = process.env.X402_ENABLED !== "false";
 
 // ---- Pricing (USDC) — tune freely, redeploys in seconds ----
@@ -30,8 +32,8 @@ if (X402_ENABLED) {
   const routes = Object.fromEntries(
     Object.entries(PRICES).map(([route, price]) => [route, { price, network: NETWORK }])
   );
-  app.use(paymentMiddleware(PAY_TO, routes, { url: FACILITATOR_URL }));
-  console.log(`x402 enabled → payments to ${PAY_TO} on ${NETWORK}`);
+  app.use(paymentMiddleware(PAY_TO, routes, USE_CDP ? cdpFacilitator : { url: FACILITATOR_URL }));
+  console.log(`x402 enabled → payments to ${PAY_TO} on ${NETWORK} via ${USE_CDP ? "Coinbase CDP facilitator" : FACILITATOR_URL}`);
 } else {
   console.log("x402 DISABLED (free mode for local testing)");
 }
