@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: chainverdict
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node src/index.js
+    envVars:
+      - key: PAY_TO_ADDRESS
+        sync: false
+      - key: X402_NETWORK
+        value: base
+      - key: RPC_URL
+        sync: false
