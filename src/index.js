@@ -5,6 +5,7 @@ import { paymentMiddleware } from "x402-express";
 import { facilitator as cdpFacilitator } from "@coinbase/x402";
 import { validateIBAN, validateVAT, validateBIC } from "./lib/validators.js";
 import { tokenVerdict, walletDossier } from "./lib/chain.js";
+import { handleMcpRequest, isPaidMcpCall } from "./mcp-http.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -12,6 +13,7 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const LANDING = readFileSync(join(__dir, "landing.html"), "utf8");
 
 const app = express();
+let mcpGate = null;
 app.use(express.json({ limit: "2mb" }));
 
 const PAY_TO = process.env.PAY_TO_ADDRESS;            // your Base wallet (public address only)
@@ -29,15 +31,19 @@ const PRICES = {
   "GET /v1/validate/vat/*": "$0.001",
   "GET /v1/validate/bic/*": "$0.001",
   "POST /v1/doc/html-to-markdown": "$0.002",
-  "POST /v1/doc/diff": "$0.002"
+  "POST /v1/doc/diff": "$0.002",
+  "POST /mcp": "$0.005"
 };
 
 if (X402_ENABLED) {
   if (!PAY_TO) { console.error("PAY_TO_ADDRESS is required when X402_ENABLED"); process.exit(1); }
   const routes = Object.fromEntries(
-    Object.entries(PRICES).map(([route, price]) => [route, { price, network: NETWORK }])
+    Object.entries(PRICES).filter(([r]) => r !== "POST /mcp")
+      .map(([route, price]) => [route, { price, network: NETWORK }])
   );
   app.use(paymentMiddleware(PAY_TO, routes, USE_CDP ? cdpFacilitator : { url: FACILITATOR_URL }));
+  mcpGate = paymentMiddleware(PAY_TO, { "POST /mcp": { price: PRICES["POST /mcp"], network: NETWORK } },
+    USE_CDP ? cdpFacilitator : { url: FACILITATOR_URL });
   console.log(`x402 enabled → payments to ${PAY_TO} on ${NETWORK} via ${USE_CDP ? "Coinbase CDP facilitator" : FACILITATOR_URL}`);
 } else {
   console.log("x402 DISABLED (free mode for local testing)");
@@ -124,6 +130,15 @@ app.post("/v1/doc/diff", (req, res) => {
   const changed = parts.filter(p => p.added || p.removed).length;
   res.json({ mode, changed_hunks: changed, identical: changed === 0, parts });
 });
+
+// ---- Hosted MCP endpoint: list free, calls x402-gated flat $0.005 ----
+app.post("/mcp", (req, res) => {
+  if (mcpGate && isPaidMcpCall(req.body)) return mcpGate(req, res, () => handleMcpRequest(req, res));
+  return handleMcpRequest(req, res);
+});
+app.get("/mcp", (_req, res) => res.status(405).json({
+  jsonrpc: "2.0", error: { code: -32000, message: "Stateless server: POST only. tools/list is free; tools/call is x402-paid ($0.005 USDC on Base)." }, id: null
+}));
 
 function openapiSpec() {
   return {
