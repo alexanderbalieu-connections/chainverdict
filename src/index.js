@@ -6,6 +6,8 @@ import { facilitator as cdpFacilitator } from "@coinbase/x402";
 import { validateIBAN, validateVAT, validateBIC } from "./lib/validators.js";
 import { tokenVerdict, walletDossier } from "./lib/chain.js";
 import { handleMcpRequest, isPaidMcpCall } from "./mcp-http.js";
+import { validateLEI, validateISIN, verifyToken, verifyPayment } from "./lib/institutional.js";
+import { screenAddress, startSanctionsRefresher } from "./lib/sanctions.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -32,7 +34,12 @@ const PRICES = {
   "GET /v1/validate/bic/*": "$0.001",
   "POST /v1/doc/html-to-markdown": "$0.002",
   "POST /v1/doc/diff": "$0.002",
-  "POST /mcp": "$0.005"
+  "POST /mcp": "$0.005",
+  "GET /v1/screen/address/*": "$0.05",
+  "GET /v1/verify/payment/*": "$0.02",
+  "GET /v1/verify/token/*": "$0.005",
+  "GET /v1/validate/lei/*": "$0.002",
+  "GET /v1/validate/isin/*": "$0.001"
 };
 
 if (X402_ENABLED) {
@@ -73,6 +80,11 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 ## Paid endpoints (x402, USDC on Base)
 - GET https://chainverdict.xyz/v1/token/verdict/{address} — token safety verdict on Base, $0.02
 - GET https://chainverdict.xyz/v1/wallet/dossier/{address} — wallet profile, $0.01
+- GET https://chainverdict.xyz/v1/screen/address/{address} — OFAC SDN sanctions screening (daily-refreshed), $0.05
+- GET https://chainverdict.xyz/v1/verify/payment/{txhash} — on-chain ERC-20 settlement verification on Base, $0.02
+- GET https://chainverdict.xyz/v1/verify/token/{addressOrSymbol} — canonical token verification on Base, $0.005
+- GET https://chainverdict.xyz/v1/validate/lei/{lei} — ISO 17442 LEI validation, $0.002
+- GET https://chainverdict.xyz/v1/validate/isin/{isin} — ISO 6166 ISIN validation, $0.001
 - GET https://chainverdict.xyz/v1/validate/iban/{iban} — IBAN mod-97 validation, $0.001
 - GET https://chainverdict.xyz/v1/validate/vat/{vat} — EU VAT format+checksum validation, $0.001
 - GET https://chainverdict.xyz/v1/validate/bic/{bic} — BIC/SWIFT validation, $0.001
@@ -113,6 +125,16 @@ app.get("/v1/wallet/dossier/:address", async (req, res) => {
 app.get("/v1/validate/iban/:iban", (req, res) => res.json(validateIBAN(req.params.iban)));
 app.get("/v1/validate/vat/:vat", (req, res) => res.json(validateVAT(req.params.vat)));
 app.get("/v1/validate/bic/:bic", (req, res) => res.json(validateBIC(req.params.bic)));
+
+// ---- Paid: institutional trust & compliance suite ----
+app.get("/v1/screen/address/:addr", (req, res) => res.json(screenAddress(req.params.addr)));
+app.get("/v1/verify/payment/:tx", async (req, res) => {
+  try { res.json(await verifyPayment(req.params.tx)); }
+  catch (e) { res.status(502).json({ error: "chain_read_failed", detail: String(e.message || e) }); }
+});
+app.get("/v1/verify/token/:q", (req, res) => res.json(verifyToken(req.params.q)));
+app.get("/v1/validate/lei/:lei", (req, res) => res.json(validateLEI(req.params.lei)));
+app.get("/v1/validate/isin/:isin", (req, res) => res.json(validateISIN(req.params.isin)));
 
 // ---- Paid: doc utilities ----
 const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
@@ -158,4 +180,5 @@ function openapiSpec() {
 }
 
 const PORT = process.env.PORT || 3000;
+startSanctionsRefresher();
 app.listen(PORT, () => console.log(`AgentPay listening on :${PORT}`));
