@@ -12,6 +12,7 @@ import { validateLEI, validateISIN, verifyToken, verifyPayment } from "./lib/ins
 import { screenAddress } from "./lib/sanctions.js";
 import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
 import { gasOracle, tokenSupply, tokenActivity, blockInfo, portfolio } from "./lib/onchain-data.js";
+import { enrich } from "./lib/enrich.js";
 
 const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
 const asText = (obj) => ({ content: [{ type: "text", text: JSON.stringify(obj, null, 2) }] });
@@ -22,27 +23,27 @@ function buildServer() {
     title: "Token safety verdict (Base)",
     description: "Heuristic ERC-20 safety verdict on Base: bytecode risk capabilities, ownership, metadata, 0-100 score, hold/caution/avoid.",
     inputSchema: { address: z.string() }
-  }, async ({ address }) => asText(await tokenVerdict(address)));
+  }, async ({ address }) => asText(enrich("token/verdict", await tokenVerdict(address))));
   server.registerTool("wallet_dossier", {
     title: "Wallet dossier (Base)",
     description: "Profile of a Base address: EOA vs contract, balance, activity band, flags.",
     inputSchema: { address: z.string() }
-  }, async ({ address }) => asText(await walletDossier(address)));
+  }, async ({ address }) => asText(enrich("wallet/dossier", await walletDossier(address))));
   server.registerTool("validate_iban", {
     title: "Validate IBAN",
     description: "IBAN mod-97 checksum + country length rules.",
     inputSchema: { iban: z.string() }
-  }, async ({ iban }) => asText(validateIBAN(iban)));
+  }, async ({ iban }) => asText(enrich("iban", validateIBAN(iban))));
   server.registerTool("validate_vat", {
     title: "Validate EU VAT number",
     description: "EU VAT format validation with deterministic checksums (DE, IT, LU, PL, SI).",
     inputSchema: { vat: z.string() }
-  }, async ({ vat }) => asText(validateVAT(vat)));
+  }, async ({ vat }) => asText(enrich("vat", validateVAT(vat))));
   server.registerTool("validate_bic", {
     title: "Validate BIC/SWIFT",
     description: "BIC/SWIFT structural validation and decomposition.",
     inputSchema: { bic: z.string() }
-  }, async ({ bic }) => asText(validateBIC(bic)));
+  }, async ({ bic }) => asText(enrich("bic", validateBIC(bic))));
   server.registerTool("html_to_markdown", {
     title: "HTML to Markdown",
     description: "Convert raw HTML to clean Markdown.",
@@ -63,7 +64,7 @@ function buildServer() {
     title: "OFAC sanctions screening",
     description: "Screen a crypto address against the OFAC SDN digital-currency list (daily-refreshed). Pre-flight check before paying anyone. $0.05.",
     inputSchema: { address: z.string() }
-  }, async ({ address }) => asText(screenAddress(address)));
+  }, async ({ address }) => asText(enrich("screen/address", screenAddress(address))));
   server.registerTool("preflight_payee", {
     title: "Pre-payment trust check",
     description: "One-call payee safety: OFAC screening + wallet profile + clear_to_pay/caution/do_not_pay verdict. $0.06.",
@@ -82,46 +83,46 @@ function buildServer() {
     title: "Verify on-chain payment (Base)",
     description: "Decode ERC-20 transfers in a Base transaction: amounts, counterparties, confirmations. $0.02.",
     inputSchema: { txhash: z.string() }
-  }, async ({ txhash }) => asText(await verifyPayment(txhash)));
+  }, async ({ txhash }) => asText(enrich("verify/payment", await verifyPayment(txhash))));
   server.registerTool("verify_token", {
     title: "Canonical token check (Base)",
     description: "Is this the real USDC/EURC/WETH/cbBTC/USDT on Base? Anti-phishing for stablecoin payments. $0.005.",
     inputSchema: { query: z.string().describe("token address or symbol") }
-  }, async ({ query }) => asText(verifyToken(query)));
+  }, async ({ query }) => asText(enrich("verify/token", verifyToken(query))));
   server.registerTool("validate_lei", {
     title: "Validate LEI (ISO 17442)",
     description: "Legal Entity Identifier checksum validation. $0.002.",
     inputSchema: { lei: z.string() }
-  }, async ({ lei }) => asText(validateLEI(lei)));
+  }, async ({ lei }) => asText(enrich("lei", validateLEI(lei))));
   server.registerTool("validate_isin", {
     title: "Validate ISIN (ISO 6166)",
     description: "Securities identifier checksum validation. $0.001.",
     inputSchema: { isin: z.string() }
-  }, async ({ isin }) => asText(validateISIN(isin)));
+  }, async ({ isin }) => asText(enrich("isin", validateISIN(isin))));
 
   // ---- security posture ----
   server.registerTool("security_email", {
     title: "Email spoofing posture (SPF/DMARC/DKIM)",
     description: "Live DNS check of a domain's email authentication records. $0.01.",
     inputSchema: { domain: z.string(), selector: z.string().optional() }
-  }, async ({ domain, selector }) => asText(await emailPosture(domain, selector)));
+  }, async ({ domain, selector }) => asText(enrich("security/email", await emailPosture(domain, selector))));
   server.registerTool("security_tls", {
     title: "TLS certificate check",
     description: "Live TLS handshake: cert validity, issuer, expiry countdown. $0.01.",
     inputSchema: { domain: z.string() }
-  }, async ({ domain }) => asText(await tlsPosture(domain)));
+  }, async ({ domain }) => asText(enrich("security/tls", await tlsPosture(domain))));
   server.registerTool("security_typosquat", {
     title: "Typosquat / look-alike domain check",
     description: "Flags homoglyph and edit-distance look-alikes of known brands (c0inbase, b1nance, etc.). $0.005.",
     inputSchema: { domain: z.string(), brands: z.string().optional().describe("comma-separated brand list") }
-  }, async ({ domain, brands }) => asText(typosquatCheck(domain, brands)));
+  }, async ({ domain, brands }) => asText(enrich("security/typosquat", typosquatCheck(domain, brands))));
 
   // ---- on-chain data pack (Base reads) ----
   server.registerTool("data_gas", {
     title: "Base gas oracle",
     description: "Live Base gas conditions: base fee, priority fees, congestion, est transfer cost. $0.002.",
     inputSchema: {}
-  }, async () => asText(await gasOracle()));
+  }, async () => asText(enrich("data/gas", await gasOracle())));
   server.registerTool("data_block", {
     title: "Latest Base block",
     description: "Latest block number, timestamp, tx count, gas utilization. $0.001.",
@@ -131,17 +132,17 @@ function buildServer() {
     title: "Token supply & burn (Base)",
     description: "Total/circulating/burned supply and burn percentage for an ERC-20 on Base. $0.003.",
     inputSchema: { address: z.string() }
-  }, async ({ address }) => asText(await tokenSupply(address)));
+  }, async ({ address }) => asText(enrich("data/supply", await tokenSupply(address))));
   server.registerTool("data_token_activity", {
     title: "Token transfer activity (Base)",
     description: "Recent transfer count, volume, unique senders/receivers, activity level. $0.005.",
     inputSchema: { address: z.string(), blocks: z.number().optional() }
-  }, async ({ address, blocks }) => asText(await tokenActivity(address, blocks || 2000)));
+  }, async ({ address, blocks }) => asText(enrich("data/activity", await tokenActivity(address, blocks || 2000))));
   server.registerTool("data_portfolio", {
     title: "Address portfolio (Base)",
     description: "ETH + canonical token balances (USDC/WETH/cbBTC/EURC) for an address. $0.004.",
     inputSchema: { address: z.string() }
-  }, async ({ address }) => asText(await portfolio(address)));
+  }, async ({ address }) => asText(enrich("data/portfolio", await portfolio(address))));
 
   return server;
 }

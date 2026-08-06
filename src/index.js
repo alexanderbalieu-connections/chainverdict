@@ -11,6 +11,7 @@ import { screenAddress, startSanctionsRefresher } from "./lib/sanctions.js";
 import { signResponses, signingInfo } from "./lib/signing.js";
 import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
 import { gasOracle, tokenSupply, tokenActivity, blockInfo, portfolio } from "./lib/onchain-data.js";
+import { enrich } from "./lib/enrich.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -139,28 +140,28 @@ app.get("/.well-known/x402.json", (_req, res) => res.json({
 
 // ---- Paid: on-chain verdicts ----
 app.get("/v1/token/verdict/:address", async (req, res) => {
-  try { res.json(await tokenVerdict(req.params.address)); }
+  try { res.json(enrich("token/verdict", await tokenVerdict(req.params.address))); }
   catch (e) { res.status(502).json({ error: "chain_read_failed", detail: String(e.message || e) }); }
 });
 app.get("/v1/wallet/dossier/:address", async (req, res) => {
-  try { res.json(await walletDossier(req.params.address)); }
+  try { res.json(enrich("wallet/dossier", await walletDossier(req.params.address))); }
   catch (e) { res.status(502).json({ error: "chain_read_failed", detail: String(e.message || e) }); }
 });
 
 // ---- Paid: deterministic validators ----
-app.get("/v1/validate/iban/:iban", (req, res) => res.json(validateIBAN(req.params.iban)));
-app.get("/v1/validate/vat/:vat", (req, res) => res.json(validateVAT(req.params.vat)));
-app.get("/v1/validate/bic/:bic", (req, res) => res.json(validateBIC(req.params.bic)));
+app.get("/v1/validate/iban/:iban", (req, res) => res.json(enrich("iban", validateIBAN(req.params.iban))));
+app.get("/v1/validate/vat/:vat", (req, res) => res.json(enrich("vat", validateVAT(req.params.vat))));
+app.get("/v1/validate/bic/:bic", (req, res) => res.json(enrich("bic", validateBIC(req.params.bic))));
 
 // ---- Paid: institutional trust & compliance suite ----
-app.get("/v1/screen/address/:addr", (req, res) => res.json(screenAddress(req.params.addr)));
+app.get("/v1/screen/address/:addr", (req, res) => res.json(enrich("screen/address", screenAddress(req.params.addr))));
 app.get("/v1/verify/payment/:tx", async (req, res) => {
-  try { res.json(await verifyPayment(req.params.tx)); }
+  try { res.json(enrich("verify/payment", await verifyPayment(req.params.tx))); }
   catch (e) { res.status(502).json({ error: "chain_read_failed", detail: String(e.message || e) }); }
 });
-app.get("/v1/verify/token/:q", (req, res) => res.json(verifyToken(req.params.q)));
-app.get("/v1/validate/lei/:lei", (req, res) => res.json(validateLEI(req.params.lei)));
-app.get("/v1/validate/isin/:isin", (req, res) => res.json(validateISIN(req.params.isin)));
+app.get("/v1/verify/token/:q", (req, res) => res.json(enrich("verify/token", verifyToken(req.params.q))));
+app.get("/v1/validate/lei/:lei", (req, res) => res.json(enrich("lei", validateLEI(req.params.lei))));
+app.get("/v1/validate/isin/:isin", (req, res) => res.json(enrich("isin", validateISIN(req.params.isin))));
 
 // ---- Paid: one-call pre-payment trust check ----
 app.get("/v1/preflight/:addr", async (req, res) => {
@@ -204,22 +205,22 @@ app.post("/v1/batch/validate", (req, res) => {
 });
 
 // ---- Paid: on-chain data pack (direct Base reads, no third-party) ----
-app.get("/v1/data/gas", async (_req, res) => { try { res.json(await gasOracle()); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
+app.get("/v1/data/gas", async (_req, res) => { try { res.json(enrich("data/gas", await gasOracle())); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
 app.get("/v1/data/block", async (_req, res) => { try { res.json(await blockInfo()); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
-app.get("/v1/data/supply/:addr", async (req, res) => { try { res.json(await tokenSupply(req.params.addr)); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
-app.get("/v1/data/activity/:addr", async (req, res) => { try { res.json(await tokenActivity(req.params.addr, Number(req.query.blocks)||2000)); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
-app.get("/v1/data/portfolio/:addr", async (req, res) => { try { res.json(await portfolio(req.params.addr)); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
+app.get("/v1/data/supply/:addr", async (req, res) => { try { res.json(enrich("data/supply", await tokenSupply(req.params.addr))); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
+app.get("/v1/data/activity/:addr", async (req, res) => { try { res.json(enrich("data/activity", await tokenActivity(req.params.addr, Number(req.query.blocks)||2000))); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
+app.get("/v1/data/portfolio/:addr", async (req, res) => { try { res.json(enrich("data/portfolio", await portfolio(req.params.addr))); } catch(e){ res.status(502).json({error:"chain_read_failed",detail:String(e.message||e)}); } });
 
 // ---- Paid: security posture (deterministic DNS/TLS lookups) ----
 app.get("/v1/security/email/:domain", async (req, res) => {
-  try { res.json(await emailPosture(req.params.domain, req.query.selector)); }
+  try { res.json(enrich("security/email", await emailPosture(req.params.domain, req.query.selector))); }
   catch (e) { res.status(502).json({ error: "lookup_failed", detail: String(e.message || e) }); }
 });
 app.get("/v1/security/tls/:domain", async (req, res) => {
-  try { res.json(await tlsPosture(req.params.domain)); }
+  try { res.json(enrich("security/tls", await tlsPosture(req.params.domain))); }
   catch (e) { res.status(502).json({ error: "handshake_failed", detail: String(e.message || e) }); }
 });
-app.get("/v1/security/typosquat/:domain", (req, res) => res.json(typosquatCheck(req.params.domain, req.query.brands)));
+app.get("/v1/security/typosquat/:domain", (req, res) => res.json(enrich("security/typosquat", typosquatCheck(req.params.domain, req.query.brands))));
 
 // ---- Paid: doc utilities ----
 const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
