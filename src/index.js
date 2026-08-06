@@ -5,6 +5,11 @@ import { paymentMiddleware } from "x402-express";
 import { facilitator as cdpFacilitator } from "@coinbase/x402";
 import { validateIBAN, validateVAT, validateBIC } from "./lib/validators.js";
 import { tokenVerdict, walletDossier } from "./lib/chain.js";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+const __dir = dirname(fileURLToPath(import.meta.url));
+const LANDING = readFileSync(join(__dir, "landing.html"), "utf8");
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -39,17 +44,54 @@ if (X402_ENABLED) {
 }
 
 // ---- Free discovery endpoints (agents & humans) ----
-app.get("/", (_req, res) => res.json({
+app.get("/", (req, res) => {
+  if ((req.headers.accept || "").includes("text/html")) return res.type("html").send(LANDING);
+  res.json({
   service: "ChainVerdict",
   homepage: "https://chainverdict.xyz",
   description: "Pay-per-call APIs for autonomous agents: token safety verdicts, wallet dossiers, finance validators, doc utilities. x402/USDC on Base.",
   payment: { protocol: "x402", network: NETWORK, currency: "USDC" },
   endpoints: Object.entries(PRICES).map(([route, price]) => ({ route, price })),
   openapi: "/openapi.json",
+  llms: "/llms.txt",
+  x402_discovery: "/.well-known/x402.json",
   health: "/health"
-}));
+  });
+});
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.get("/openapi.json", (_req, res) => res.json(openapiSpec()));
+app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
+`# ChainVerdict
+> Pay-per-call verdict APIs for autonomous agents. x402/USDC on Base via Coinbase CDP facilitator. No API keys, no accounts.
+
+## Paid endpoints (x402, USDC on Base)
+- GET https://chainverdict.xyz/v1/token/verdict/{address} — token safety verdict on Base, $0.02
+- GET https://chainverdict.xyz/v1/wallet/dossier/{address} — wallet profile, $0.01
+- GET https://chainverdict.xyz/v1/validate/iban/{iban} — IBAN mod-97 validation, $0.001
+- GET https://chainverdict.xyz/v1/validate/vat/{vat} — EU VAT format+checksum validation, $0.001
+- GET https://chainverdict.xyz/v1/validate/bic/{bic} — BIC/SWIFT validation, $0.001
+- POST https://chainverdict.xyz/v1/doc/html-to-markdown — HTML to Markdown, $0.002
+- POST https://chainverdict.xyz/v1/doc/diff — structured text diff, $0.002
+
+## Machine-readable
+- OpenAPI: https://chainverdict.xyz/openapi.json
+- x402 discovery: https://chainverdict.xyz/.well-known/x402.json
+`));
+app.get("/.well-known/x402.json", (_req, res) => res.json({
+  x402Version: 1,
+  name: "ChainVerdict",
+  description: "Pay-per-call verdict APIs for autonomous agents on Base.",
+  url: "https://chainverdict.xyz",
+  network: NETWORK,
+  currency: "USDC",
+  payTo: PAY_TO || null,
+  resources: Object.entries(PRICES).map(([route, price]) => {
+    const [method, path] = route.split(" ");
+    return { method, path, price, discoverable: true };
+  }),
+  openapi: "https://chainverdict.xyz/openapi.json",
+  contact: "https://chainverdict.xyz"
+}));
 
 // ---- Paid: on-chain verdicts ----
 app.get("/v1/token/verdict/:address", async (req, res) => {

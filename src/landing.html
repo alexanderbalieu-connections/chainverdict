@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChainVerdict — pay-per-call verdict APIs for AI agents</title>
+<meta name="description" content="Token safety verdicts, wallet dossiers, and finance validators for autonomous agents. x402 pay-per-call in USDC on Base. No keys, no accounts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16233B; --paper:#F7F9FA; --line:#D8DFE6;
+  --usdc:#2775CA; --hold:#1E7A4A; --caution:#B7791F; --avoid:#A63D2F;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--paper);color:var(--ink);font:16px/1.6 'IBM Plex Sans',system-ui,sans-serif}
+a{color:var(--usdc)}
+.wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+header{display:flex;justify-content:space-between;align-items:baseline;padding:28px 0;border-bottom:1px solid var(--line)}
+.brand{font:700 22px 'Space Grotesk';letter-spacing:-.02em}
+.brand .tld{color:var(--usdc)}
+header nav a{margin-left:22px;font-size:14px;text-decoration:none;color:var(--ink)}
+header nav a:hover{color:var(--usdc)}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:56px;padding:72px 0 64px;align-items:center}
+h1{font:700 clamp(34px,4.6vw,52px)/1.08 'Space Grotesk';letter-spacing:-.03em}
+h1 em{font-style:normal;color:var(--usdc)}
+.lede{margin:22px 0 28px;font-size:18px;max-width:44ch}
+.chips{display:flex;gap:10px;flex-wrap:wrap;font:500 13px var(--mono)}
+.chips span{border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:999px}
+/* wire exchange */
+.wire{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;padding:26px 26px 30px;font:14px/1.75 var(--mono);box-shadow:0 1px 0 var(--line)}
+.wire .lbl{font-size:11px;letter-spacing:.14em;color:#6B7686;margin-bottom:14px}
+.wire .c-req{color:#41506A}
+.wire .c-402{color:var(--avoid);font-weight:500}
+.wire .c-pay{color:var(--usdc)}
+.wire .c-200{color:var(--hold);font-weight:500}
+.stamp{position:absolute;right:22px;bottom:18px;transform:rotate(-7deg);border:3px solid var(--hold);color:var(--hold);font:700 15px 'Space Grotesk';letter-spacing:.1em;padding:6px 14px;border-radius:6px;background:rgba(30,122,74,.05)}
+/* rate card */
+section{padding:56px 0;border-top:1px solid var(--line)}
+h2{font:700 26px 'Space Grotesk';letter-spacing:-.02em;margin-bottom:8px}
+.sub{color:#54627A;margin-bottom:30px;max-width:60ch}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:14px 18px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 12px var(--mono);letter-spacing:.12em;color:#6B7686;background:#FCFDFE}
+td.route{font:500 14px var(--mono);white-space:nowrap}
+td.price{font:500 15px var(--mono);color:var(--usdc);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+.v{font:700 11px 'Space Grotesk';letter-spacing:.09em;padding:2px 8px;border-radius:4px;border:2px solid}
+.v.h{color:var(--hold);border-color:var(--hold)} .v.c{color:var(--caution);border-color:var(--caution)} .v.a{color:var(--avoid);border-color:var(--avoid)}
+/* try */
+pre{background:var(--ink);color:#E8EEF6;border-radius:10px;padding:22px 24px;font:14px/1.7 var(--mono);overflow-x:auto}
+pre .k{color:#7FB4EC}
+.foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:34px 0 48px;border-top:1px solid var(--line);font-size:14px;color:#54627A}
+.foot a{margin-right:18px}
+@media(max-width:820px){.hero{grid-template-columns:1fr;gap:40px;padding:48px 0}}
+@media(prefers-reduced-motion:no-preference){
+  .wire div{opacity:0;animation:line .5s ease forwards}
+  .wire div:nth-child(2){animation-delay:.15s}.wire div:nth-child(3){animation-delay:.7s}
+  .wire div:nth-child(4){animation-delay:1.25s}.wire div:nth-child(5){animation-delay:1.8s}
+  .wire div:nth-child(6){animation-delay:2.35s}.wire .stamp{opacity:0;animation:stamp .35s cubic-bezier(.2,1.6,.4,1) 2.75s forwards}
+  @keyframes line{to{opacity:1}}
+  @keyframes stamp{from{opacity:0;transform:rotate(-7deg) scale(1.7)}to{opacity:1;transform:rotate(-7deg) scale(1)}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand">chainverdict<span class="tld">.xyz</span></div>
+  <nav>
+    <a href="#rates">Rate card</a>
+    <a href="#try">Try it</a>
+    <a href="/openapi.json">OpenAPI</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <div>
+    <h1>Your agent asks.<br>Pays <em>$0.001</em>.<br>Gets a verdict.</h1>
+    <p class="lede">Pay-per-call APIs for autonomous agents: token safety verdicts and wallet dossiers on Base, plus deterministic finance validators. Settled in USDC over x402 — no API keys, no accounts, no humans in the loop.</p>
+    <div class="chips">
+      <span>x402</span><span>USDC · Base</span><span>Coinbase CDP facilitator</span><span>no signup</span>
+    </div>
+  </div>
+  <div class="wire" aria-label="Example x402 exchange">
+    <div class="lbl">ONE PURCHASE, ON THE WIRE</div>
+    <div class="c-req">→ GET /v1/token/verdict/0x4200…0006</div>
+    <div class="c-402">← 402 Payment Required · $0.02 USDC</div>
+    <div class="c-pay">→ retry + X-PAYMENT (signed, no gas)</div>
+    <div class="c-200">← 200 OK · score 84 · "hold"</div>
+    <div class="lbl" style="margin-top:14px">SETTLED ON BASE IN ~2s</div>
+    <div class="stamp">HOLD · 84/100</div>
+  </div>
+</div>
+
+<section id="rates">
+  <h2>Rate card</h2>
+  <p class="sub">Every endpoint answers unpaid requests with a 402 quote. Agents pay per call and get JSON back. Verdicts come stamped <span class="v h">HOLD</span> <span class="v c">CAUTION</span> <span class="v a">AVOID</span> with reasons.</p>
+  <table>
+    <tr><th>ENDPOINT</th><th>WHAT YOU GET</th><th>PRICE</th></tr>
+    <tr><td class="route">GET /v1/token/verdict/{addr}</td><td>Token safety verdict on Base — bytecode risk capabilities (mint, pause, blacklist, proxy), ownership status, ERC-20 metadata, 0–100 score.</td><td class="price">$0.02</td></tr>
+    <tr><td class="route">GET /v1/wallet/dossier/{addr}</td><td>Wallet profile — EOA/contract, balance, activity band, behavioural flags, as-of block.</td><td class="price">$0.01</td></tr>
+    <tr><td class="route">GET /v1/validate/iban/{iban}</td><td>IBAN mod-97 checksum + per-country length rules, normalized BBAN.</td><td class="price">$0.001</td></tr>
+    <tr><td class="route">GET /v1/validate/vat/{vat}</td><td>EU VAT format for 27 registries + deterministic checksums (DE, IT, LU, PL, SI).</td><td class="price">$0.001</td></tr>
+    <tr><td class="route">GET /v1/validate/bic/{bic}</td><td>BIC/SWIFT structure check, decomposed bank / country / location / branch.</td><td class="price">$0.001</td></tr>
+    <tr><td class="route">POST /v1/doc/html-to-markdown</td><td>Clean Markdown from raw HTML.</td><td class="price">$0.002</td></tr>
+    <tr><td class="route">POST /v1/doc/diff</td><td>Structured diff — lines, words, or chars — with change hunks.</td><td class="price">$0.002</td></tr>
+  </table>
+</section>
+
+<section id="try">
+  <h2>Call it in 30 seconds</h2>
+  <p class="sub">Any x402 client works. With <a href="https://www.npmjs.com/package/x402-fetch">x402-fetch</a> and a funded Base wallet:</p>
+<pre><span class="k">import</span> { wrapFetchWithPayment } <span class="k">from</span> "x402-fetch";
+<span class="k">const</span> payFetch = wrapFetchWithPayment(fetch, account);
+<span class="k">const</span> res = <span class="k">await</span> payFetch(
+  "https://chainverdict.xyz/v1/token/verdict/0x4200000000000000000000000000000000000006"
+);
+console.log(<span class="k">await</span> res.json()); <span class="k">// → verdict, score, reasons</span></pre>
+</section>
+
+<div class="foot">
+  <div>
+    <a href="/openapi.json">OpenAPI</a>
+    <a href="/llms.txt">llms.txt</a>
+    <a href="/.well-known/x402.json">x402 discovery</a>
+    <a href="/health">Status</a>
+  </div>
+  <div>Verdicts are heuristic signals, not financial advice. · ChainVerdict, Luxembourg</div>
+</div>
+
+</div>
+</body>
+</html>
