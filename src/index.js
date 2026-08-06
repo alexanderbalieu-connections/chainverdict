@@ -8,6 +8,8 @@ import { tokenVerdict, walletDossier } from "./lib/chain.js";
 import { handleMcpRequest, isPaidMcpCall } from "./mcp-http.js";
 import { validateLEI, validateISIN, verifyToken, verifyPayment } from "./lib/institutional.js";
 import { screenAddress, startSanctionsRefresher } from "./lib/sanctions.js";
+import { signResponses, signingInfo } from "./lib/signing.js";
+import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -16,6 +18,7 @@ const LANDING = readFileSync(join(__dir, "landing.html"), "utf8");
 
 const app = express();
 let mcpGate = null;
+app.use(signResponses("/v1/"));
 app.use(express.json({ limit: "2mb" }));
 
 const PAY_TO = process.env.PAY_TO_ADDRESS;            // your Base wallet (public address only)
@@ -39,7 +42,12 @@ const PRICES = {
   "GET /v1/verify/payment/*": "$0.02",
   "GET /v1/verify/token/*": "$0.005",
   "GET /v1/validate/lei/*": "$0.002",
-  "GET /v1/validate/isin/*": "$0.001"
+  "GET /v1/validate/isin/*": "$0.001",
+  "GET /v1/preflight/*": "$0.06",
+  "POST /v1/batch/validate": "$0.10",
+  "GET /v1/security/email/*": "$0.01",
+  "GET /v1/security/tls/*": "$0.01",
+  "GET /v1/security/typosquat/*": "$0.005"
 };
 
 if (X402_ENABLED) {
@@ -73,6 +81,7 @@ app.get("/", (req, res) => {
 });
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.get("/openapi.json", (_req, res) => res.json(openapiSpec()));
+app.get("/.well-known/signing-key.json", (_req, res) => res.json(signingInfo()));
 app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 `# ChainVerdict
 > Pay-per-call verdict APIs for autonomous agents. x402/USDC on Base via Coinbase CDP facilitator. No API keys, no accounts.
@@ -80,6 +89,11 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 ## Paid endpoints (x402, USDC on Base)
 - GET https://chainverdict.xyz/v1/token/verdict/{address} — token safety verdict on Base, $0.02
 - GET https://chainverdict.xyz/v1/wallet/dossier/{address} — wallet profile, $0.01
+- GET https://chainverdict.xyz/v1/security/email/{domain} — SPF/DMARC/DKIM email-spoofing posture, $0.01
+- GET https://chainverdict.xyz/v1/security/tls/{domain} — live TLS certificate validity/expiry check, $0.01
+- GET https://chainverdict.xyz/v1/security/typosquat/{domain} — brand look-alike/homoglyph structural check, $0.005
+- GET https://chainverdict.xyz/v1/preflight/{address} — one-call pre-payment trust check (sanctions + wallet profile + verdict), $0.06
+- POST https://chainverdict.xyz/v1/batch/validate — batch-validate up to 500 IBAN/VAT/BIC/LEI/ISIN items, $0.10
 - GET https://chainverdict.xyz/v1/screen/address/{address} — OFAC SDN sanctions screening (daily-refreshed), $0.05
 - GET https://chainverdict.xyz/v1/verify/payment/{txhash} — on-chain ERC-20 settlement verification on Base, $0.02
 - GET https://chainverdict.xyz/v1/verify/token/{addressOrSymbol} — canonical token verification on Base, $0.005
@@ -94,6 +108,7 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 ## Machine-readable
 - OpenAPI: https://chainverdict.xyz/openapi.json
 - x402 discovery: https://chainverdict.xyz/.well-known/x402.json
+- Response signing key (Ed25519, all /v1/* responses signed): https://chainverdict.xyz/.well-known/signing-key.json
 `));
 app.get("/.well-known/x402.json", (_req, res) => res.json({
   x402Version: 1,
@@ -135,6 +150,58 @@ app.get("/v1/verify/payment/:tx", async (req, res) => {
 app.get("/v1/verify/token/:q", (req, res) => res.json(verifyToken(req.params.q)));
 app.get("/v1/validate/lei/:lei", (req, res) => res.json(validateLEI(req.params.lei)));
 app.get("/v1/validate/isin/:isin", (req, res) => res.json(validateISIN(req.params.isin)));
+
+// ---- Paid: one-call pre-payment trust check ----
+app.get("/v1/preflight/:addr", async (req, res) => {
+  try {
+    const [screen, dossier] = await Promise.all([
+      Promise.resolve(screenAddress(req.params.addr)),
+      walletDossier(req.params.addr).catch(e => ({ error: "dossier_failed", detail: String(e.message || e) }))
+    ]);
+    let verdict = "clear_to_pay";
+    const reasons = [];
+    if (screen.error) { verdict = "caution"; reasons.push("invalid_address"); }
+    else if (screen.status === "unavailable") { verdict = "caution"; reasons.push("sanctions_list_unavailable"); }
+    else if (screen.sanctioned_match) { verdict = "do_not_pay"; reasons.push("ofac_sdn_match"); }
+    if (!screen.error && dossier && !dossier.error) {
+      if (dossier.flags?.includes("unused_address")) { if (verdict === "clear_to_pay") verdict = "caution"; reasons.push("payee_address_never_used"); }
+    } else if (dossier?.error) reasons.push("dossier_unavailable");
+    res.json({
+      address: screen.address || req.params.addr,
+      verdict, reasons,
+      sanctions: screen, wallet: dossier,
+      disclaimer: "Automated pre-flight signal from public data. Not a complete compliance program; final responsibility rests with the payer.",
+      checked_at: new Date().toISOString()
+    });
+  } catch (e) { res.status(502).json({ error: "preflight_failed", detail: String(e.message || e) }); }
+});
+
+// ---- Paid: batch validation (up to 500 items) ----
+app.post("/v1/batch/validate", (req, res) => {
+  const items = req.body?.items;
+  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: "body.items (array) required, e.g. [{type:'iban',value:'...'}]" });
+  if (items.length > 500) return res.status(400).json({ error: "max 500 items per batch" });
+  const runners = { iban: validateIBAN, vat: validateVAT, bic: validateBIC, lei: validateLEI, isin: validateISIN };
+  const results = items.map((it, i) => {
+    const fn = runners[String(it?.type || "").toLowerCase()];
+    if (!fn) return { index: i, type: it?.type ?? null, error: "unknown_type", supported: Object.keys(runners) };
+    const r = fn(it.value);
+    return { index: i, type: it.type, value: it.value, valid: r.valid, detail: r };
+  });
+  const summary = { total: items.length, valid: results.filter(r => r.valid).length, invalid: results.filter(r => r.valid === false).length, errors: results.filter(r => r.error).length };
+  res.json({ summary, results });
+});
+
+// ---- Paid: security posture (deterministic DNS/TLS lookups) ----
+app.get("/v1/security/email/:domain", async (req, res) => {
+  try { res.json(await emailPosture(req.params.domain, req.query.selector)); }
+  catch (e) { res.status(502).json({ error: "lookup_failed", detail: String(e.message || e) }); }
+});
+app.get("/v1/security/tls/:domain", async (req, res) => {
+  try { res.json(await tlsPosture(req.params.domain)); }
+  catch (e) { res.status(502).json({ error: "handshake_failed", detail: String(e.message || e) }); }
+});
+app.get("/v1/security/typosquat/:domain", (req, res) => res.json(typosquatCheck(req.params.domain, req.query.brands)));
 
 // ---- Paid: doc utilities ----
 const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });

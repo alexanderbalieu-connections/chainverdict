@@ -102,6 +102,9 @@ pre .k{color:#7FB4EC}
     <tr><th>ENDPOINT</th><th>WHAT YOU GET</th><th>PRICE</th></tr>
     <tr><td class="route">GET /v1/token/verdict/{addr}</td><td>Token safety verdict on Base — bytecode risk capabilities (mint, pause, blacklist, proxy), ownership status, ERC-20 metadata, 0–100 score.</td><td class="price">$0.02</td></tr>
     <tr><td class="route">GET /v1/wallet/dossier/{addr}</td><td>Wallet profile — EOA/contract, balance, activity band, behavioural flags, as-of block.</td><td class="price">$0.01</td></tr>
+    <tr><td class="route">GET /v1/security/email/{domain}</td><td>Email-spoofing posture: live SPF / DMARC / DKIM record check. Is this counterparty's domain protected against impersonation?</td><td class="price">$0.01</td></tr>
+    <tr><td class="route">GET /v1/security/tls/{domain}</td><td>Live TLS certificate check — validity, issuer, expiry countdown. Catch expired or misissued certs before trusting an endpoint.</td><td class="price">$0.01</td></tr>
+    <tr><td class="route">GET /v1/security/typosquat/{domain}</td><td>Brand look-alike / homoglyph structural analysis — flags c0inbase, b1nance, metamask-support and similar phishing patterns.</td><td class="price">$0.005</td></tr>
     <tr><td class="route">GET /v1/screen/address/{addr}</td><td>OFAC SDN sanctions screening against the live digital-currency list (auto-refreshed daily). Pre-flight check before your agent pays anyone.</td><td class="price">$0.05</td></tr>
     <tr><td class="route">GET /v1/verify/payment/{txhash}</td><td>On-chain settlement verification on Base — decoded ERC-20 transfers, amounts, counterparties, confirmations.</td><td class="price">$0.02</td></tr>
     <tr><td class="route">GET /v1/verify/token/{addr|symbol}</td><td>Canonical token check on Base (USDC, EURC, WETH, cbBTC, USDT) — anti-phishing for stablecoin payments.</td><td class="price">$0.005</td></tr>
