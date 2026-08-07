@@ -82,6 +82,7 @@ app.get("/", (req, res) => {
   endpoints: Object.entries(PRICES).map(([route, price]) => ({ route, price })),
   openapi: "/openapi.json",
   llms: "/llms.txt",
+  attestation: "https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block",
   x402_discovery: "/.well-known/x402.json",
   health: "/health"
   });
@@ -121,6 +122,7 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 - OpenAPI: https://chainverdict.xyz/openapi.json
 - x402 discovery: https://chainverdict.xyz/.well-known/x402.json
 - Response signing key (Ed25519, all /v1/* responses signed): https://chainverdict.xyz/.well-known/signing-key.json
+- Independent quality attestation (Ed25519-signed, refreshed daily by x402pulse): https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block
 `));
 app.get("/.well-known/x402.json", (_req, res) => res.json({
   x402Version: 1,
