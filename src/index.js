@@ -1,8 +1,10 @@
 import express from "express";
 import TurndownService from "turndown";
 import * as Diff from "diff";
-import { paymentMiddleware } from "x402-express";
-import { facilitator as cdpFacilitator } from "@coinbase/x402";
+import { paymentMiddleware, x402ResourceServer } from "@x402/express";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
+import { HTTPFacilitatorClient } from "@x402/core/server";
+import { createFacilitatorConfig } from "@coinbase/x402";
 import { validateIBAN, validateVAT, validateBIC } from "./lib/validators.js";
 import { tokenVerdict, walletDossier } from "./lib/chain.js";
 import { handleMcpRequest, isPaidMcpCall } from "./mcp-http.js";
@@ -24,7 +26,8 @@ app.use(signResponses("/v1/"));
 app.use(express.json({ limit: "2mb" }));
 
 const PAY_TO = process.env.PAY_TO_ADDRESS;            // your Base wallet (public address only)
-const NETWORK = process.env.X402_NETWORK || "base";   // "base" (mainnet) or "base-sepolia" (test)
+const RAW_NET = process.env.X402_NETWORK || "base";
+const NETWORK = RAW_NET === "base" ? "eip155:8453" : RAW_NET === "base-sepolia" ? "eip155:84532" : RAW_NET; // CAIP-2 (x402 v2)
 const FACILITATOR_URL = process.env.FACILITATOR_URL || "https://x402.org/facilitator";
 const USE_CDP = !!(process.env.CDP_API_KEY_ID && process.env.CDP_API_KEY_SECRET);
 const X402_ENABLED = process.env.X402_ENABLED !== "false";
@@ -59,13 +62,17 @@ const PRICES = {
 
 if (X402_ENABLED) {
   if (!PAY_TO) { console.error("PAY_TO_ADDRESS is required when X402_ENABLED"); process.exit(1); }
+  const facilitatorClient = USE_CDP
+    ? new HTTPFacilitatorClient(createFacilitatorConfig(process.env.CDP_API_KEY_ID, process.env.CDP_API_KEY_SECRET))
+    : new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+  const resourceServer = new x402ResourceServer(facilitatorClient).register(NETWORK, new ExactEvmScheme());
   const routes = Object.fromEntries(
     Object.entries(PRICES).filter(([r]) => r !== "POST /mcp")
-      .map(([route, price]) => [route, { price, network: NETWORK }])
+      .map(([route, price]) => [route, { accepts: { scheme: "exact", price, network: NETWORK, payTo: PAY_TO }, mimeType: "application/json" }])
   );
-  app.use(paymentMiddleware(PAY_TO, routes, USE_CDP ? cdpFacilitator : { url: FACILITATOR_URL }));
-  mcpGate = paymentMiddleware(PAY_TO, { "POST /mcp": { price: PRICES["POST /mcp"], network: NETWORK } },
-    USE_CDP ? cdpFacilitator : { url: FACILITATOR_URL });
+  app.use(paymentMiddleware(routes, resourceServer, undefined, undefined, true));
+  mcpGate = paymentMiddleware({ "POST /mcp": { accepts: { scheme: "exact", price: PRICES["POST /mcp"], network: NETWORK, payTo: PAY_TO }, mimeType: "application/json" } },
+    resourceServer, undefined, undefined, false);
   console.log(`x402 enabled → payments to ${PAY_TO} on ${NETWORK} via ${USE_CDP ? "Coinbase CDP facilitator" : FACILITATOR_URL}`);
 } else {
   console.log("x402 DISABLED (free mode for local testing)");
@@ -125,14 +132,14 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 - Independent quality attestation (Ed25519-signed, refreshed daily by x402pulse): https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block
 `));
 app.get("/.well-known/x402.json", (_req, res) => res.json({
-  x402Version: 1,
+  x402Version: 2,
   name: "ChainVerdict",
   description: "Pay-per-call verdict APIs for autonomous agents on Base.",
   url: "https://chainverdict.xyz",
   network: NETWORK,
   currency: "USDC",
   payTo: PAY_TO || null,
-  resources: Object.entries(PRICES).map(([route, price]) => {
+  resources: Object.entries(PRICES).filter(([r]) => r !== "POST /mcp").map(([route, price]) => {
     const [method, path] = route.split(" ");
     return { method, path, price, discoverable: true };
   }),
@@ -253,19 +260,21 @@ app.get("/mcp", (_req, res) => res.status(405).json({
 function openapiSpec() {
   return {
     openapi: "3.0.3",
-    info: { title: "ChainVerdict API", version: "1.0.0",
-      description: "x402 pay-per-call. Unpaid requests receive HTTP 402 with payment requirements." },
-    paths: Object.fromEntries(Object.entries(PRICES).map(([route, price]) => {
+    info: { title: "ChainVerdict API", version: "2.0.0", contact: { email: "contact@chainverdict.xyz" },
+      description: "x402 v2 pay-per-call. Unpaid requests receive HTTP 402 with payment requirements." },
+    paths: Object.fromEntries(Object.entries(PRICES).filter(([r]) => r !== "POST /mcp").map(([route, price]) => {
       const [method, path] = route.split(" ");
       return [path.replace(/:(\w+)/g, "{$1}"), {
         [method.toLowerCase()]: {
           summary: `${path} — ${price} USDC per call via x402`,
-          responses: { 200: { description: "JSON result" }, 402: { description: "Payment required (x402)" } }
+          responses: { 200: { description: "JSON result", content: { "application/json": { schema: { type: "object", additionalProperties: true } } } }, 402: { description: "Payment required (x402 v2)" } }
         }
       }];
     }))
   };
 }
+
+app.get("/favicon.ico", (_req, res) => res.sendFile(join(__dir, "favicon.ico")));
 
 const PORT = process.env.PORT || 3000;
 startSanctionsRefresher();
