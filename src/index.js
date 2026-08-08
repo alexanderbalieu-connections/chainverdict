@@ -312,6 +312,8 @@ function openapiSpec() {
   };
 }
 
+app.get("/favicon.ico", (_req, res) => res.sendFile(join(__dir, "favicon.ico")));
+
 const PORT = process.env.PORT || 3000;
 startSanctionsRefresher();
 app.listen(PORT, () => console.log(`AgentPay listening on :${PORT}`));
