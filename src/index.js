@@ -258,23 +258,59 @@ app.get("/mcp", (_req, res) => res.status(405).json({
 }));
 
 function openapiSpec() {
+  const P = (name, desc, example) => [{ name, in: "path", required: true, description: desc, schema: { type: "string" }, example }];
+  const PARAMS = {
+    "/v1/token/verdict/{address}": P("address", "ERC-20 token contract address on Base (0x-prefixed, 42 chars)", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"),
+    "/v1/wallet/dossier/{address}": P("address", "Base address (EOA or contract)", "0xAe2634E709c454f2720C65A0b2F9ba168e431842"),
+    "/v1/validate/iban/{iban}": P("iban", "IBAN incl. country prefix", "DE89370400440532013000"),
+    "/v1/validate/vat/{vat}": P("vat", "EU VAT number incl. country prefix", "DE123456789"),
+    "/v1/validate/bic/{bic}": P("bic", "BIC/SWIFT, 8 or 11 chars", "DEUTDEFF"),
+    "/v1/screen/address/{addr}": P("addr", "EVM address to screen against OFAC SDN", "0xAe2634E709c454f2720C65A0b2F9ba168e431842"),
+    "/v1/verify/payment/{tx}": P("tx", "Base transaction hash (0x, 66 chars)", "0x94efa7ccb96a6e906f5a8bb511b63c44cbaf98239d368ac2d428a8c176578082"),
+    "/v1/verify/token/{q}": P("q", "Token address or symbol", "USDC"),
+    "/v1/validate/lei/{lei}": P("lei", "20-char LEI (ISO 17442)", "5299000J2N45DDNE4Y28"),
+    "/v1/validate/isin/{isin}": P("isin", "12-char ISIN (ISO 6166)", "US0378331005"),
+    "/v1/preflight/{addr}": P("addr", "Payee address on Base to check before paying", "0xAe2634E709c454f2720C65A0b2F9ba168e431842"),
+    "/v1/security/email/{domain}": P("domain", "Domain to check SPF/DMARC/DKIM", "example.com"),
+    "/v1/security/tls/{domain}": P("domain", "Hostname to probe over TLS", "example.com"),
+    "/v1/security/typosquat/{domain}": P("domain", "Domain to analyse for brand look-alikes", "c0inbase.com"),
+    "/v1/data/supply/{token}": P("token", "ERC-20 contract address on Base", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"),
+    "/v1/data/activity/{token}": P("token", "ERC-20 contract address on Base", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"),
+    "/v1/data/portfolio/{address}": P("address", "Base address to read balances for", "0xAe2634E709c454f2720C65A0b2F9ba168e431842"),
+  };
+  const BODIES = {
+    "/v1/doc/html-to-markdown": { required: true, content: { "application/json": { schema: { type: "object", required: ["html"], properties: { html: { type: "string", example: "<h1>Hello</h1>" } } } } } },
+    "/v1/doc/diff": { required: true, content: { "application/json": { schema: { type: "object", required: ["a", "b"], properties: { a: { type: "string", example: "line one" }, b: { type: "string", example: "line two" }, mode: { type: "string", enum: ["lines", "words", "chars"] } } } } } },
+    "/v1/batch/validate": { required: true, content: { "application/json": { schema: { type: "object", required: ["items"], properties: { items: { type: "array", maxItems: 500, items: { type: "object", required: ["type", "value"], properties: { type: { type: "string", enum: ["iban", "vat", "bic", "lei", "isin"] }, value: { type: "string" } } }, example: [{ type: "iban", value: "DE89370400440532013000" }] } } } } } },
+  };
   return {
     openapi: "3.0.3",
     info: { title: "ChainVerdict API", version: "2.0.0", contact: { email: "contact@chainverdict.xyz" },
       description: "x402 v2 pay-per-call. Unpaid requests receive HTTP 402 with payment requirements." },
     paths: Object.fromEntries(Object.entries(PRICES).filter(([r]) => r !== "POST /mcp").map(([route, price]) => {
       const [method, path] = route.split(" ");
-      return [path.replace(/:(\w+)/g, "{$1}"), {
-        [method.toLowerCase()]: {
-          summary: `${path} — ${price} USDC per call via x402`,
-          responses: { 200: { description: "JSON result", content: { "application/json": { schema: { type: "object", additionalProperties: true } } } }, 402: { description: "Payment required (x402 v2)" } }
-        }
-      }];
+      const RENAME = {
+        "/v1/token/verdict/*": "/v1/token/verdict/{address}", "/v1/wallet/dossier/*": "/v1/wallet/dossier/{address}",
+        "/v1/validate/iban/*": "/v1/validate/iban/{iban}", "/v1/validate/vat/*": "/v1/validate/vat/{vat}",
+        "/v1/validate/bic/*": "/v1/validate/bic/{bic}", "/v1/screen/address/*": "/v1/screen/address/{addr}",
+        "/v1/verify/payment/*": "/v1/verify/payment/{tx}", "/v1/verify/token/*": "/v1/verify/token/{q}",
+        "/v1/validate/lei/*": "/v1/validate/lei/{lei}", "/v1/validate/isin/*": "/v1/validate/isin/{isin}",
+        "/v1/preflight/*": "/v1/preflight/{addr}", "/v1/security/email/*": "/v1/security/email/{domain}",
+        "/v1/security/tls/*": "/v1/security/tls/{domain}", "/v1/security/typosquat/*": "/v1/security/typosquat/{domain}",
+        "/v1/data/supply/*": "/v1/data/supply/{token}", "/v1/data/activity/*": "/v1/data/activity/{token}",
+        "/v1/data/portfolio/*": "/v1/data/portfolio/{address}",
+      };
+      const oaPath = RENAME[path] || path;
+      const op = {
+        summary: `${path} — ${price} USDC per call via x402`,
+        parameters: PARAMS[oaPath] || [],
+        responses: { 200: { description: "JSON result", content: { "application/json": { schema: { type: "object", additionalProperties: true } } } }, 402: { description: "Payment required (x402 v2)" } }
+      };
+      if (BODIES[oaPath]) op.requestBody = BODIES[oaPath];
+      return [oaPath, { [method.toLowerCase()]: op }];
     }))
   };
 }
-
-app.get("/favicon.ico", (_req, res) => res.sendFile(join(__dir, "favicon.ico")));
 
 const PORT = process.env.PORT || 3000;
 startSanctionsRefresher();
