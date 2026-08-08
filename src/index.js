@@ -303,7 +303,7 @@ function openapiSpec() {
       const oaPath = RENAME[path] || path;
       const op = {
         summary: `${path} — ${price} USDC per call via x402`,
-        parameters: PARAMS[oaPath] || [],
+        parameters: PARAMS[oaPath] || [{ name: "format", in: "query", required: false, description: "Response format (json)", schema: { type: "string", enum: ["json"], default: "json" }, example: "json" }],
         responses: { 200: { description: "JSON result", content: { "application/json": { schema: { type: "object", additionalProperties: true } } } }, 402: { description: "Payment required (x402 v2)" } }
       };
       if (BODIES[oaPath]) op.requestBody = BODIES[oaPath];
