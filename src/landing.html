@@ -83,7 +83,7 @@ pre .k{color:#7FB4EC}
     <h1>Your agent asks.<br>Pays <em>$0.001</em>.<br>Gets a verdict.</h1>
     <p class="lede">Checks an autonomous agent runs <strong>before</strong> it moves money or trusts a counterparty — sanctions screening, payee risk, token safety, settlement verification, identifier validation. Every answer arrives with its evidence: what was checked, when, how confident it is, and what it does <em style="font-style:italic;color:inherit">not</em> mean. Billing is per call in USDC — no keys, no accounts, no humans in the loop.</p>
     <div class="chips">
-      <span>evidence on every answer</span><span>Ed25519-signed</span><span>public methodology</span><span>USDC · Base · x402</span><span>no signup</span><span><a href="https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block" style="text-decoration:none">A-grade · attested daily ↗</a></span>
+      <span>evidence on every answer</span><span>no fake precision</span><span>Ed25519-signed</span><span>public methodology</span><span>USDC · Base · x402</span><span>no signup</span><span><a href="https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block" style="text-decoration:none">A-grade · attested daily ↗</a></span>
     </div>
   </div>
   <div class="wire" aria-label="Example x402 exchange">
@@ -139,8 +139,10 @@ pre .k{color:#7FB4EC}
     "freshness":       { "basis": "daily-refresh+live-chain", "maxUsefulAgeSeconds": 60,
                          "staleDataRisk": "A designation made since the last refresh
                                            will not appear here." },
-    "confidence":      { "value": 0.7, "basis": "composite of one exact list match
-                                                 and heuristic address signals" },
+    "assurance":       { "level": "heuristic", "basis": "composite of one exact list
+                                            match and heuristic address signals" },
+    "semantics":       { "assuranceIsNotAProbability": "...NOT a calibrated probability...",
+                         "signatureProvesIntegrityNotTruth": "...integrity is not truth..." },
     "humanApprovalRecommended": "unless_clear_to_pay",
     <span class="k">"limitations"</span>: [
       "'clear_to_pay' means no configured negative signal was found. It is NOT an
@@ -153,7 +155,7 @@ pre .k{color:#7FB4EC}
     ]
   }
 }</pre>
-  <p class="sub" style="margin-top:22px;margin-bottom:0"><strong>Confidence means certainty in the check, not in the world.</strong> An IBAN checksum scores 1.0 because the arithmetic is certain — it still proves nothing about whether the account exists. That distinction is stated on every response and documented at <a href="/v1/methodology">/v1/methodology</a>, which is free to read precisely so a buyer can audit how a verdict is produced before paying for one.</p>
+  <p class="sub" style="margin-top:22px;margin-bottom:0"><strong>Deliberately not a score.</strong> Assurance is an ordinal label — <em style="font-style:normal;font-family:var(--mono);font-size:13px">deterministic</em>, <em style="font-style:normal;font-family:var(--mono);font-size:13px">observed</em>, <em style="font-style:normal;font-family:var(--mono);font-size:13px">exact-list-match</em>, <em style="font-style:normal;font-family:var(--mono);font-size:13px">structural</em>, <em style="font-style:normal;font-family:var(--mono);font-size:13px">heuristic</em> — describing <em style="font-style:normal">how</em> the answer was produced. It is not a number, because a number would imply a calibration ChainVerdict has not performed. An IBAN checksum is <em style="font-style:normal;font-family:var(--mono);font-size:13px">deterministic</em> because the arithmetic is certain; that still proves nothing about whether the account exists.<br><br><strong>And a signature proves integrity, not truth.</strong> It shows this response came from ChainVerdict unaltered. A signed wrong answer is still wrong — and still signed. Both statements ship on every response and are documented at <a href="/v1/methodology">/v1/methodology</a>, free to read so a buyer can audit how a verdict is produced before paying for one.</p>
 </section>
 
 <section id="try">

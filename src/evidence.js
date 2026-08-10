@@ -34,7 +34,7 @@ const REGISTRY = [
     checks: ["OFAC SDN digital-currency address list match (exact, case-insensitive)"],
     sources: [{ name: "US Treasury OFAC SDN list (digital currency addresses)", refresh: "daily" }],
     freshness: { basis: "daily-refresh", maxUsefulAgeSeconds: 86400 },
-    confidence: { value: 0.99, basis: "exact string match against a published list; high precision, bounded recall" },
+    assurance: { level: "exact-list-match", basis: "exact string match against a published list; high precision, bounded recall (a list can be incomplete or out of date)" },
     humanApprovalRecommended: "on_match",
     limitations: [
       "Screens the US OFAC SDN digital-currency address list ONLY. It does NOT screen EU, UN, UK/OFSI, or any other sanctions regime.",
@@ -57,7 +57,7 @@ const REGISTRY = [
       { name: "Base mainnet RPC", refresh: "per-request" },
     ],
     freshness: { basis: "daily-refresh+live-chain", maxUsefulAgeSeconds: 60 },
-    confidence: { value: 0.7, basis: "composite of one exact list match and heuristic address signals" },
+    assurance: { level: "heuristic", basis: "composite of one exact list match and heuristic address signals; the heuristic component is not validated against a labelled dataset" },
     humanApprovalRecommended: "unless_clear_to_pay",
     limitations: [
       "'clear_to_pay' means no configured negative signal was found. It is NOT an endorsement, a guarantee of counterparty legitimacy, or a recommendation to transact.",
@@ -79,7 +79,7 @@ const REGISTRY = [
     ],
     sources: [{ name: "Base mainnet RPC (contract bytecode + metadata)", refresh: "per-request" }],
     freshness: { basis: "live-chain", maxUsefulAgeSeconds: 60 },
-    confidence: { value: 0.6, basis: "heuristic static analysis; no execution, no audit, no liquidity or market analysis" },
+    assurance: { level: "heuristic", basis: "heuristic static analysis; no execution, no audit, no liquidity or market analysis; not validated against a labelled dataset" },
     humanApprovalRecommended: "unless_hold",
     limitations: [
       "Heuristic static analysis — NOT a security audit and not a substitute for one.",
@@ -95,7 +95,7 @@ const REGISTRY = [
     checks: ["EOA vs contract detection", "Native balance", "Activity band", "Heuristic flags"],
     sources: [{ name: "Base mainnet RPC", refresh: "per-request" }],
     freshness: { basis: "live-chain", maxUsefulAgeSeconds: 60 },
-    confidence: { value: 0.85, basis: "direct chain reads; flags are heuristic" },
+    assurance: { level: "observed-with-heuristics", basis: "balances and code presence are direct chain reads; behavioural flags are heuristic" },
     humanApprovalRecommended: "no",
     limitations: [
       "Describes on-chain state at the stated block. It does not identify the owner of the address.",
@@ -109,7 +109,7 @@ const REGISTRY = [
     checks: ["Transaction receipt lookup", "ERC-20 Transfer log decoding", "Counterparties and amounts", "Confirmation depth"],
     sources: [{ name: "Base mainnet RPC", refresh: "per-request" }],
     freshness: { basis: "live-chain", maxUsefulAgeSeconds: 30 },
-    confidence: { value: 0.98, basis: "direct receipt/log decoding; deterministic given the chain state" },
+    assurance: { level: "observed", basis: "direct receipt and log decoding; deterministic given the chain state at the stated block" },
     humanApprovalRecommended: "no",
     limitations: [
       "Reports what the chain records. Low confirmation counts remain theoretically reorg-exposed; check the confirmations field before treating a payment as final.",
@@ -123,7 +123,7 @@ const REGISTRY = [
     checks: ["Match against ChainVerdict's curated canonical Base token list (USDC, EURC, WETH, cbBTC, USDT)"],
     sources: [{ name: "ChainVerdict curated canonical token list", refresh: "manual" }],
     freshness: { basis: "curated", maxUsefulAgeSeconds: null },
-    confidence: { value: 0.95, basis: "exact match against a small hand-maintained allowlist" },
+    assurance: { level: "exact-list-match", basis: "exact match against a small hand-maintained allowlist; the list is not exhaustive" },
     humanApprovalRecommended: "on_mismatch",
     limitations: [
       "Covers a small curated set of major Base tokens. 'Not canonical' means 'not on this list' — it is not a claim that the token is fraudulent.",
@@ -137,7 +137,7 @@ const REGISTRY = [
     checks: ["SPF record lookup", "DMARC policy lookup", "DKIM selector lookup (when supplied)"],
     sources: [{ name: "Live public DNS", refresh: "per-request" }],
     freshness: { basis: "live-dns", maxUsefulAgeSeconds: 3600 },
-    confidence: { value: 0.9, basis: "direct DNS observation; subject to resolver caching" },
+    assurance: { level: "observed", basis: "direct DNS observation at request time; subject to resolver caching" },
     humanApprovalRecommended: "no",
     limitations: [
       "Describes published DNS policy, not whether a specific message was authentic.",
@@ -152,7 +152,7 @@ const REGISTRY = [
     checks: ["TLS handshake", "Certificate validity window", "Issuer", "Expiry countdown"],
     sources: [{ name: "Live TLS handshake, port 443", refresh: "per-request" }],
     freshness: { basis: "live-tls", maxUsefulAgeSeconds: 3600 },
-    confidence: { value: 0.95, basis: "direct observation of the presented certificate" },
+    assurance: { level: "observed", basis: "direct observation of the certificate presented to this server at this moment" },
     humanApprovalRecommended: "no",
     limitations: [
       "Observes the certificate presented to this server at this moment; a different client, SNI or geography may be served a different certificate.",
@@ -166,7 +166,7 @@ const REGISTRY = [
     checks: ["Homoglyph substitution detection", "Edit-distance comparison against a brand list"],
     sources: [{ name: "ChainVerdict curated brand list + string analysis", refresh: "manual" }],
     freshness: { basis: "deterministic", maxUsefulAgeSeconds: null },
-    confidence: { value: 0.75, basis: "string-similarity heuristic; brand list is not exhaustive" },
+    assurance: { level: "heuristic", basis: "string-similarity heuristic; brand list is not exhaustive; not validated against a labelled dataset" },
     humanApprovalRecommended: "on_match",
     limitations: [
       "Similarity to a brand is a signal, not proof of malicious intent; legitimate domains can resemble brands.",
@@ -181,7 +181,7 @@ const REGISTRY = [
     checks: ["Direct Base mainnet read"],
     sources: [{ name: "Base mainnet RPC", refresh: "per-request" }],
     freshness: { basis: "live-chain", maxUsefulAgeSeconds: 30 },
-    confidence: { value: 0.98, basis: "direct chain read" },
+    assurance: { level: "observed", basis: "direct chain read at the stated block" },
     humanApprovalRecommended: "no",
     limitations: [
       "Point-in-time chain state. Values change every block (~2s on Base); treat as immediately perishable.",
@@ -194,7 +194,7 @@ const REGISTRY = [
     checks: ["ISO 13616 structure", "Country-specific length rule", "MOD-97-10 check digits"],
     sources: [{ name: "ISO 13616 / ECBS country register (bundled rules)", refresh: "with releases" }],
     freshness: { basis: "deterministic", maxUsefulAgeSeconds: null },
-    confidence: { value: 1.0, basis: "mathematical certainty of the checksum computation itself" },
+    assurance: { level: "deterministic", basis: "the checksum arithmetic is certain; this says nothing about real-world existence or status" },
     humanApprovalRecommended: "no",
     limitations: DETERMINISTIC_LIMITS.concat([
       "Does not confirm the account is open, the holder's identity, or that the bank will accept a transfer.",
@@ -207,7 +207,7 @@ const REGISTRY = [
     checks: ["Country prefix and format", "Deterministic checksum where defined (DE, IT, LU, PL, SI)"],
     sources: [{ name: "Published national VAT checksum rules (bundled)", refresh: "with releases" }],
     freshness: { basis: "deterministic", maxUsefulAgeSeconds: null },
-    confidence: { value: 0.9, basis: "checksum certain where implemented; format-only for other member states" },
+    assurance: { level: "deterministic-partial", basis: "checksum arithmetic is certain where implemented; format-only for other member states" },
     humanApprovalRecommended: "no",
     limitations: DETERMINISTIC_LIMITS.concat([
       "Checksums are implemented for a subset of member states; others are format-checked only.",
@@ -221,7 +221,7 @@ const REGISTRY = [
     checks: ["ISO 9362 structure", "Component decomposition (institution, country, location, branch)"],
     sources: [{ name: "ISO 9362 structural rules (bundled)", refresh: "with releases" }],
     freshness: { basis: "deterministic", maxUsefulAgeSeconds: null },
-    confidence: { value: 0.9, basis: "structure is certain; no registry lookup performed" },
+    assurance: { level: "structural", basis: "structure is certain; BIC carries no check digit and no registry lookup is performed" },
     humanApprovalRecommended: "no",
     limitations: DETERMINISTIC_LIMITS.concat([
       "BIC has no check digit. Structural validity does not confirm the code is assigned to an operating institution — that requires the SWIFT registry.",
@@ -234,7 +234,7 @@ const REGISTRY = [
     checks: ["ISO 17442 format", "MOD-97-10 check digits"],
     sources: [{ name: "ISO 17442 (bundled)", refresh: "with releases" }],
     freshness: { basis: "deterministic", maxUsefulAgeSeconds: null },
-    confidence: { value: 1.0, basis: "mathematical certainty of the checksum computation itself" },
+    assurance: { level: "deterministic", basis: "the checksum arithmetic is certain; this says nothing about real-world existence or status" },
     humanApprovalRecommended: "no",
     limitations: DETERMINISTIC_LIMITS.concat([
       "Does not query GLEIF. It cannot tell you the entity name or whether the LEI registration is Issued, Lapsed or Retired.",
@@ -247,7 +247,7 @@ const REGISTRY = [
     checks: ["ISO 6166 format", "Luhn check digit"],
     sources: [{ name: "ISO 6166 (bundled)", refresh: "with releases" }],
     freshness: { basis: "deterministic", maxUsefulAgeSeconds: null },
-    confidence: { value: 1.0, basis: "mathematical certainty of the checksum computation itself" },
+    assurance: { level: "deterministic", basis: "the checksum arithmetic is certain; this says nothing about real-world existence or status" },
     humanApprovalRecommended: "no",
     limitations: DETERMINISTIC_LIMITS.concat([
       "Does not confirm the security exists, is listed, or is tradeable. No reference-data lookup is performed.",
@@ -260,7 +260,7 @@ const REGISTRY = [
     checks: ["Per-item structural and checksum validation (iban, vat, bic, lei, isin)"],
     sources: [{ name: "Bundled standards rules", refresh: "with releases" }],
     freshness: { basis: "deterministic", maxUsefulAgeSeconds: null },
-    confidence: { value: 0.95, basis: "per-item checksum certainty; see each item's type limitations" },
+    assurance: { level: "deterministic", basis: "per-item checksum arithmetic is certain; see each item type's limitations" },
     humanApprovalRecommended: "no",
     limitations: DETERMINISTIC_LIMITS,
   }),
@@ -271,7 +271,7 @@ const REGISTRY = [
     checks: ["Deterministic text transformation"],
     sources: [{ name: "Request payload only", refresh: "n/a" }],
     freshness: { basis: "deterministic", maxUsefulAgeSeconds: null },
-    confidence: { value: 1.0, basis: "deterministic transformation of supplied input" },
+    assurance: { level: "deterministic", basis: "deterministic transformation of the supplied input" },
     humanApprovalRecommended: "no",
     limitations: ["Operates only on the text you supplied. No external data is consulted and no claim is made about its accuracy."],
   }),
@@ -294,14 +294,18 @@ export function methodologyDocument(prices = {}) {
     principle:
       "Every paid response states what was checked, when, from which source, how confident the result is, and what it does not mean. Signals are designed to be verifiable by the buyer rather than trusted on assertion.",
     evidenceModel: {
-      confidence:
-        "confidence.value describes certainty in the CHECK PERFORMED, not in any real-world conclusion drawn from it. A checksum validation is 1.0 because the arithmetic is certain — it says nothing about whether the account exists.",
+      assurance:
+        "assurance.level is an ordinal label describing HOW an answer was produced (deterministic / structural / observed / exact-list-match / heuristic). It is deliberately NOT a numeric score, because a number implies calibration that ChainVerdict has not performed. No level should be read as a probability that a subject is safe, legitimate or correct.",
+      calibration:
+        "ChainVerdict does NOT currently publish precision, recall or calibration metrics for its heuristic checks, and does not claim they are calibrated. Heuristic levels are labelled as such precisely so that a buyer does not mistake them for validated statistical estimates.",
+      integrityVsTruth:
+        "Signing proves provenance and integrity: this response came from ChainVerdict and was not altered. It does not prove the conclusion is correct. A signed wrong answer is still wrong, and is still signed.",
       freshness:
         "freshness.basis states how the answer ages. 'deterministic' never goes stale. 'live-chain', 'live-dns' and 'live-tls' are point-in-time observations. 'daily-refresh' depends on an upstream list and carries a stale-data risk that is stated explicitly.",
       limitations:
         "Every response carries the specific limitations of that check plus service-wide limitations. These are part of the product, not a disclaimer footer.",
       signature:
-        "Responses are Ed25519-signed (compact JWS). Verify against /.well-known/signing-key.json to confirm a response is genuinely ChainVerdict's and was not altered in transit.",
+        "Responses are Ed25519-signed (compact JWS). Verify against /.well-known/signing-key.json to confirm a response is genuinely ChainVerdict's and was not altered in transit — and see integrityVsTruth above for what that does not establish.",
     },
     globalLimitations: GLOBAL_LIMITS,
     endpoints: REGISTRY.map((e) => ({
@@ -311,7 +315,7 @@ export function methodologyDocument(prices = {}) {
       checksPerformed: e.checks,
       dataSources: e.sources,
       freshness: e.freshness,
-      confidence: e.confidence,
+      assurance: e.assurance,
       humanApprovalRecommended: e.humanApprovalRecommended,
       limitations: e.limitations,
       priceUsd: prices[e.match] ?? undefined,
@@ -370,12 +374,20 @@ export function buildEvidence(path, body) {
   return {
     methodologyVersion: METHODOLOGY_VERSION,
     decision: spec.decision,
+    semantics: {
+      assuranceIsNotAProbability:
+        "assurance.level is an ORDINAL description of how the answer was produced. It is NOT a calibrated probability. 'deterministic' does not mean '100% chance this counterparty is safe'; it means the arithmetic of the check is certain. No number here should be read as a likelihood of safety, legitimacy or correctness.",
+      signatureProvesIntegrityNotTruth:
+        "The Ed25519 signature proves that ChainVerdict produced this exact response and that it was not altered in transit. It does NOT prove the conclusion is correct. Integrity is not truth.",
+      absenceOfSignalIsNotAssurance:
+        "A negative finding means the specific checks listed in checksPerformed did not fire. It is not evidence that the subject is safe, legitimate or fit for your purpose.",
+    },
     subject: spec.subject,
     checksPerformed: spec.checks,
     dataSources: spec.sources,
     freshness,
     ...(blockContext(spec.freshness.basis) || {}),
-    confidence: spec.confidence,
+    assurance: spec.assurance,
     humanApprovalRecommended: spec.humanApprovalRecommended,
     limitations: spec.limitations,
     globalLimitations: GLOBAL_LIMITS,
