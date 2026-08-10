@@ -14,6 +14,7 @@ import { signResponses, signingInfo } from "./lib/signing.js";
 import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
 import { gasOracle, tokenSupply, tokenActivity, blockInfo, portfolio } from "./lib/onchain-data.js";
 import { enrich } from "./lib/enrich.js";
+import { evidenceMiddleware, methodologyDocument, METHODOLOGY_VERSION, noteBlockHeight } from "./evidence.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -24,6 +25,10 @@ const app = express();
 let mcpGate = null;
 app.use(signResponses("/v1/"));
 app.use(express.json({ limit: "2mb" }));
+// Evidence layer: annotates /v1/* responses with checks, sources, freshness,
+// confidence and limitations. Registered after signResponses so the Ed25519
+// signature covers the evidence block too.
+app.use(evidenceMiddleware());
 
 const PAY_TO = process.env.PAY_TO_ADDRESS;            // your Base wallet (public address only)
 const RAW_NET = process.env.X402_NETWORK || "base";
@@ -84,22 +89,40 @@ app.get("/", (req, res) => {
   res.json({
   service: "ChainVerdict",
   homepage: "https://chainverdict.xyz",
-  description: "Pay-per-call APIs for autonomous agents: token safety verdicts, wallet dossiers, finance validators, doc utilities. x402/USDC on Base.",
+  description: "Evidence-backed checks an autonomous agent can run before it moves money or trusts a counterparty: sanctions screening, payee risk, token safety, payment verification, financial-identifier validation and web-security posture. Every answer states what was checked, when, how confident it is and what it does not mean.",
   payment: { protocol: "x402", network: NETWORK, currency: "USDC" },
   endpoints: Object.entries(PRICES).map(([route, price]) => ({ route, price })),
   openapi: "/openapi.json",
   llms: "/llms.txt",
+  methodology: "/v1/methodology",
+  methodologyVersion: METHODOLOGY_VERSION,
   attestation: "https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block",
   x402_discovery: "/.well-known/x402.json",
   health: "/health"
   });
 });
-app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
+app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now(), methodologyVersion: METHODOLOGY_VERSION }));
+// Public methodology: what each endpoint checks, its sources, freshness model,
+// confidence basis and limitations. Free by design — buyers should be able to
+// audit how a verdict is produced before paying for one.
+app.get("/v1/methodology", (_req, res) => res.json(methodologyDocument()));
 app.get("/openapi.json", (_req, res) => res.json(openapiSpec()));
 app.get("/.well-known/signing-key.json", (_req, res) => res.json(signingInfo()));
 app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 `# ChainVerdict
-> Pay-per-call verdict APIs for autonomous agents. x402/USDC on Base via Coinbase CDP facilitator. No API keys, no accounts.
+> Evidence-backed checks an autonomous agent runs BEFORE it moves money or trusts a counterparty.
+> Screen a payee for sanctions, profile a recipient address, verify a token is canonical, confirm a payment settled,
+> validate an IBAN/VAT/BIC/LEI/ISIN, or check a domain's email/TLS posture — in one call, with no account.
+>
+> Every paid response carries a machine-readable _evidence object: checksPerformed, dataSources, freshness
+> (with explicit stale-data risk), confidence, limitations, and whether human approval is recommended.
+> Responses are Ed25519-signed so you can verify offline that the answer is genuinely ChainVerdict's.
+> Methodology is public and free to read: https://chainverdict.xyz/v1/methodology
+>
+> Honest scope: these are informational signals for decision support. They are NOT regulated financial, legal or
+> compliance advice, and the absence of a negative signal is never a guarantee of safety.
+>
+> Billing is per call in USDC on Base (x402) — no API keys, no signup, no subscription.
 
 ## Paid endpoints (x402, USDC on Base)
 - GET https://chainverdict.xyz/v1/token/verdict/{address} — token safety verdict on Base, $0.02
@@ -126,6 +149,7 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 - POST https://chainverdict.xyz/v1/doc/diff — structured text diff, $0.002
 
 ## Machine-readable
+- Methodology (free): https://chainverdict.xyz/v1/methodology
 - OpenAPI: https://chainverdict.xyz/openapi.json
 - x402 discovery: https://chainverdict.xyz/.well-known/x402.json
 - Response signing key (Ed25519, all /v1/* responses signed): https://chainverdict.xyz/.well-known/signing-key.json
@@ -286,7 +310,7 @@ function openapiSpec() {
   return {
     openapi: "3.0.3",
     info: { title: "ChainVerdict API", version: "2.0.0", contact: { email: "contact@chainverdict.xyz" },
-      description: "x402 v2 pay-per-call. Unpaid requests receive HTTP 402 with payment requirements." },
+      description: "Evidence-backed checks for autonomous agents before moving money or trusting a counterparty. Every paid response includes an _evidence object (checks performed, data sources, freshness, confidence, limitations, recommended action) and is Ed25519-signed. Methodology: /v1/methodology. Informational signals only - not regulated financial, legal or compliance advice. Billing is per call in USDC on Base (x402); unpaid requests receive HTTP 402 with payment requirements." },
     paths: Object.fromEntries(Object.entries(PRICES).filter(([r]) => r !== "POST /mcp").map(([route, price]) => {
       const [method, path] = route.split(" ");
       const RENAME = {
