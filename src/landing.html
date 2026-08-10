@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChainVerdict — pay-per-call verdict APIs for AI agents</title>
-<meta name="description" content="Token safety verdicts, wallet dossiers, and finance validators for autonomous agents. x402 pay-per-call in USDC on Base. No keys, no accounts.">
+<title>ChainVerdict — evidence-backed checks for AI agents before they move money</title>
+<meta name="description" content="Checks an autonomous agent runs before it pays a counterparty or trusts a token: sanctions screening, payee risk, token safety, payment verification, identifier validation. Every answer states what was checked, when, how confident it is and what it does not mean. Signed, per-call, no accounts.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -71,6 +71,8 @@ pre .k{color:#7FB4EC}
   <div class="brand">chainverdict<span class="tld">.xyz</span></div>
   <nav>
     <a href="#rates">Rate card</a>
+    <a href="#evidence">Evidence</a>
+    <a href="/v1/methodology">Methodology</a>
     <a href="#try">Try it</a>
     <a href="/openapi.json">OpenAPI</a>
   </nav>
@@ -79,9 +81,9 @@ pre .k{color:#7FB4EC}
 <div class="hero">
   <div>
     <h1>Your agent asks.<br>Pays <em>$0.001</em>.<br>Gets a verdict.</h1>
-    <p class="lede">Pay-per-call APIs for autonomous agents: token safety verdicts and wallet dossiers on Base, plus deterministic finance validators. Settled in USDC over x402 — no API keys, no accounts, no humans in the loop.</p>
+    <p class="lede">Checks an autonomous agent runs <strong>before</strong> it moves money or trusts a counterparty — sanctions screening, payee risk, token safety, settlement verification, identifier validation. Every answer arrives with its evidence: what was checked, when, how confident it is, and what it does <em style="font-style:italic;color:inherit">not</em> mean. Billing is per call in USDC — no keys, no accounts, no humans in the loop.</p>
     <div class="chips">
-      <span>x402</span><span>USDC · Base</span><span>Coinbase CDP facilitator</span><span>no signup</span><span><a href="https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block" style="text-decoration:none">A-grade · attested daily ↗</a></span>
+      <span>evidence on every answer</span><span>Ed25519-signed</span><span>public methodology</span><span>USDC · Base · x402</span><span>no signup</span><span><a href="https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block" style="text-decoration:none">A-grade · attested daily ↗</a></span>
     </div>
   </div>
   <div class="wire" aria-label="Example x402 exchange">
@@ -90,6 +92,7 @@ pre .k{color:#7FB4EC}
     <div class="c-402">← 402 Payment Required · $0.02 USDC</div>
     <div class="c-pay">→ retry + X-PAYMENT (signed, no gas)</div>
     <div class="c-200">← 200 OK · score 84 · "hold"</div>
+    <div class="c-req" style="font-size:12.5px;line-height:1.6">&nbsp;&nbsp;&nbsp;_evidence: checks[4] · live-chain @block · conf 0.6<br>&nbsp;&nbsp;&nbsp;limitations: "heuristic, NOT a security audit"</div>
     <div class="lbl" style="margin-top:14px">SETTLED ON BASE IN ~2s</div>
     <div class="stamp">HOLD · 84/100</div>
   </div>
@@ -97,7 +100,7 @@ pre .k{color:#7FB4EC}
 
 <section id="rates">
   <h2>Rate card</h2>
-  <p class="sub">Every endpoint answers unpaid requests with a 402 quote. Agents pay per call and get JSON back. Verdicts come stamped <span class="v h">HOLD</span> <span class="v c">CAUTION</span> <span class="v a">AVOID</span> with reasons.</p>
+  <p class="sub">Every endpoint answers unpaid requests with a 402 quote. Agents pay per call and get JSON back. Verdicts come stamped <span class="v h">HOLD</span> <span class="v c">CAUTION</span> <span class="v a">AVOID</span> — each one carrying an <code style="font:500 13px var(--mono)">_evidence</code> object with the checks performed, data sources, freshness, confidence and limitations. Read the <a href="/v1/methodology">full methodology</a> before you pay for anything.</p>
   <table>
     <tr><th>ENDPOINT</th><th>WHAT YOU GET</th><th>PRICE</th></tr>
     <tr><td class="route">GET /v1/token/verdict/{addr}</td><td>Token safety verdict on Base — bytecode risk capabilities (mint, pause, blacklist, proxy), ownership status, ERC-20 metadata, 0–100 score.</td><td class="price">$0.02</td></tr>
@@ -123,6 +126,36 @@ pre .k{color:#7FB4EC}
   </table>
 </section>
 
+<section id="evidence">
+  <h2>Every answer carries its evidence</h2>
+  <p class="sub">A verdict that sounds certain is dangerous without its limits attached, and a stale "clean" sanctions result is worse than no result at all. So the evidence is part of the response — inside the signature, so it can't be stripped or edited in transit.</p>
+<pre>{
+  "verdict": "clear_to_pay",
+  <span class="k">"_evidence"</span>: {
+    "checksPerformed": ["OFAC SDN digital-currency list match",
+                        "On-chain address profile", "Composite heuristic verdict"],
+    "dataSources":     [{ "name": "US Treasury OFAC SDN list", "refresh": "daily" },
+                        { "name": "Base mainnet RPC", "refresh": "per-request" }],
+    "freshness":       { "basis": "daily-refresh+live-chain", "maxUsefulAgeSeconds": 60,
+                         "staleDataRisk": "A designation made since the last refresh
+                                           will not appear here." },
+    "confidence":      { "value": 0.7, "basis": "composite of one exact list match
+                                                 and heuristic address signals" },
+    "humanApprovalRecommended": "unless_clear_to_pay",
+    <span class="k">"limitations"</span>: [
+      "'clear_to_pay' means no configured negative signal was found. It is NOT an
+       endorsement, a guarantee of counterparty legitimacy, or a recommendation
+       to transact.",
+      "Sanctions coverage is the US OFAC SDN digital-currency list only; other
+       regimes are not screened.",
+      "Informational risk signal only; not regulated financial, legal or
+       compliance advice."
+    ]
+  }
+}</pre>
+  <p class="sub" style="margin-top:22px;margin-bottom:0"><strong>Confidence means certainty in the check, not in the world.</strong> An IBAN checksum scores 1.0 because the arithmetic is certain — it still proves nothing about whether the account exists. That distinction is stated on every response and documented at <a href="/v1/methodology">/v1/methodology</a>, which is free to read precisely so a buyer can audit how a verdict is produced before paying for one.</p>
+</section>
+
 <section id="try">
   <h2>Call it in 30 seconds</h2>
   <p class="sub">Any x402 client works. With <a href="https://www.npmjs.com/package/x402-fetch">x402-fetch</a> and a funded Base wallet:</p>
@@ -136,6 +169,7 @@ console.log(<span class="k">await</span> res.json()); <span class="k">// → ver
 
 <div class="foot">
   <div>
+    <a href="/v1/methodology">Methodology</a>
     <a href="/openapi.json">OpenAPI</a>
     <a href="/llms.txt">llms.txt</a>
     <a href="https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block">Quality attestation</a>
@@ -143,7 +177,9 @@ console.log(<span class="k">await</span> res.json()); <span class="k">// → ver
     <a href="/.well-known/x402.json">x402 discovery</a>
     <a href="/health">Status</a>
   </div>
-  <div>Verdicts are heuristic signals, not financial advice. · ChainVerdict, Luxembourg</div>
+  <!-- TODO(Alex): insert the REAL registered entity + jurisdiction here, or leave as-is.
+     Do not state a jurisdiction that is not backed by an actual legal entity. -->
+  <div>Informational signals for automated decision support — not regulated financial, legal or compliance advice, and not a substitute for any screening obligation you may have. See <a href="/v1/methodology">methodology &amp; limitations</a>. · contact@chainverdict.xyz</div>
 </div>
 
 </div>
