@@ -5,6 +5,7 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { createFacilitatorConfig } from "@coinbase/x402";
+import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { validateIBAN, validateVAT, validateBIC } from "./lib/validators.js";
 import { tokenVerdict, walletDossier } from "./lib/chain.js";
 import { handleMcpRequest, isPaidMcpCall } from "./mcp-http.js";
@@ -65,6 +66,70 @@ const PRICES = {
   "GET /v1/data/portfolio/*": "$0.004"
 };
 
+
+// ---- Bazaar discovery metadata -------------------------------------------------
+// The CDP facilitator only catalogs a route if it declares extensions.bazaar.
+// Each entry gives the real path-parameter name, a working example value, and the
+// output shape so an agent can call the endpoint correctly without guessing.
+const BAZAAR_ROUTES = {
+  "GET /v1/token/verdict/*":     { p: "address", ex: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", d: "ERC-20 token contract address on Base", out: { verdict: "hold", score: 84 } },
+  "GET /v1/wallet/dossier/*":    { p: "address", ex: "0xAe2634E709c454f2720C65A0b2F9ba168e431842", d: "Base address (EOA or contract)", out: { type: "EOA", flags: [] } },
+  "GET /v1/validate/iban/*":     { p: "iban",    ex: "DE89370400440532013000", d: "IBAN incl. country prefix", out: { valid: true } },
+  "GET /v1/validate/vat/*":      { p: "vat",     ex: "DE123456789", d: "EU VAT number incl. country prefix", out: { valid: true } },
+  "GET /v1/validate/bic/*":      { p: "bic",     ex: "DEUTDEFF", d: "BIC/SWIFT code, 8 or 11 chars", out: { valid: true } },
+  "GET /v1/screen/address/*":    { p: "addr",    ex: "0xAe2634E709c454f2720C65A0b2F9ba168e431842", d: "EVM address to screen against the OFAC SDN list", out: { sanctioned_match: false } },
+  "GET /v1/verify/payment/*":    { p: "tx",      ex: "0x94efa7ccb96a6e906f5a8bb511b63c44cbaf98239d368ac2d428a8c176578082", d: "Base transaction hash", out: { confirmations: 12 } },
+  "GET /v1/verify/token/*":      { p: "q",       ex: "USDC", d: "Token contract address or symbol", out: { canonical: true } },
+  "GET /v1/validate/lei/*":      { p: "lei",     ex: "5299000J2N45DDNE4Y28", d: "20-character LEI (ISO 17442)", out: { valid: true } },
+  "GET /v1/validate/isin/*":     { p: "isin",    ex: "US0378331005", d: "12-character ISIN (ISO 6166)", out: { valid: true } },
+  "GET /v1/preflight/*":         { p: "addr",    ex: "0xAe2634E709c454f2720C65A0b2F9ba168e431842", d: "Payee address to check before sending funds", out: { verdict: "clear_to_pay" } },
+  "GET /v1/security/email/*":    { p: "domain",  ex: "example.com", d: "Domain to check SPF/DMARC/DKIM", out: { spf: true } },
+  "GET /v1/security/tls/*":      { p: "domain",  ex: "example.com", d: "Hostname to probe over TLS", out: { valid: true } },
+  "GET /v1/security/typosquat/*":{ p: "domain",  ex: "c0inbase.com", d: "Domain to analyse for brand impersonation", out: { suspicious: true } },
+  "GET /v1/data/supply/*":       { p: "addr",    ex: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", d: "ERC-20 contract address on Base", out: { total: "1000000" } },
+  "GET /v1/data/activity/*":     { p: "addr",    ex: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", d: "ERC-20 contract address on Base", out: { transfers: 42 } },
+  "GET /v1/data/portfolio/*":    { p: "addr",    ex: "0xAe2634E709c454f2720C65A0b2F9ba168e431842", d: "Base address to read balances for", out: { eth: "0.5" } },
+  "GET /v1/data/gas":            { out: { baseFeeGwei: 0.004 } },
+  "GET /v1/data/block":          { out: { blockNumber: 41234567 } },
+  "POST /v1/doc/html-to-markdown": { body: { html: "<h1>Hello</h1>" }, out: { markdown: "# Hello" } },
+  "POST /v1/doc/diff":           { body: { a: "line one", b: "line two" }, out: { identical: false } },
+  "POST /v1/batch/validate":     { body: { items: [{ type: "iban", value: "DE89370400440532013000" }] }, out: { results: [] } },
+};
+
+// Convert a wildcard route key to a named-parameter key so Bazaar records a real
+// parameter name instead of an auto-generated var1.
+function bazaarRouteKey(route) {
+  const meta = BAZAAR_ROUTES[route];
+  return meta?.p ? route.replace(/\/\*$/, `/:${meta.p}`) : route;
+}
+
+function bazaarExtensionFor(route) {
+  const meta = BAZAAR_ROUTES[route];
+  if (!meta) return undefined;
+  try {
+    if (meta.body) {
+      return declareDiscoveryExtension({
+        bodyType: "json",
+        input: meta.body,
+        output: { example: meta.out, schema: { type: "object", additionalProperties: true } },
+      });
+    }
+    if (meta.p) {
+      return declareDiscoveryExtension({
+        pathParams: { [meta.p]: meta.ex },
+        pathParamsSchema: { type: "object", properties: { [meta.p]: { type: "string", description: meta.d } }, required: [meta.p] },
+        output: { example: meta.out, schema: { type: "object", additionalProperties: true } },
+      });
+    }
+    return declareDiscoveryExtension({
+      output: { example: meta.out, schema: { type: "object", additionalProperties: true } },
+    });
+  } catch (e) {
+    console.error(`bazaar declaration failed for ${route}:`, e.message);
+    return undefined;
+  }
+}
+
 if (X402_ENABLED) {
   if (!PAY_TO) { console.error("PAY_TO_ADDRESS is required when X402_ENABLED"); process.exit(1); }
   const facilitatorClient = USE_CDP
@@ -73,8 +138,17 @@ if (X402_ENABLED) {
   const resourceServer = new x402ResourceServer(facilitatorClient).register(NETWORK, new ExactEvmScheme());
   const routes = Object.fromEntries(
     Object.entries(PRICES).filter(([r]) => r !== "POST /mcp")
-      .map(([route, price]) => [route, { accepts: { scheme: "exact", price, network: NETWORK, payTo: PAY_TO }, mimeType: "application/json" }])
+      .map(([route, price]) => {
+        const cfg = { accepts: { scheme: "exact", price, network: NETWORK, payTo: PAY_TO }, mimeType: "application/json" };
+        const ext = bazaarExtensionFor(route);
+        if (ext) cfg.extensions = ext;
+        const desc = BAZAAR_ROUTES[route]?.d;
+        cfg.description = desc ? `${route} - ${desc}` : route;
+        return [bazaarRouteKey(route), cfg];
+      })
   );
+  const declared = Object.values(routes).filter(r => r.extensions?.bazaar).length;
+  console.log(`bazaar discovery declared on ${declared}/${Object.keys(routes).length} routes`);
   app.use(paymentMiddleware(routes, resourceServer, undefined, undefined, true));
   mcpGate = paymentMiddleware({ "POST /mcp": { accepts: { scheme: "exact", price: PRICES["POST /mcp"], network: NETWORK, payTo: PAY_TO }, mimeType: "application/json" } },
     resourceServer, undefined, undefined, false);
