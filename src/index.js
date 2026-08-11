@@ -98,8 +98,57 @@ const BAZAAR_ROUTES = {
   "POST /v1/batch/validate":     { body: { items: [{ type: "iban", value: "DE89370400440532013000" }] }, out: { results: [] } },
 };
 
-// Convert a wildcard route key to a named-parameter key so Bazaar records a real
-// parameter name instead of an auto-generated var1.
+// ---- Bazaar route descriptions -------------------------------------------------
+// This is the text an agent reads in the Bazaar catalog when deciding whether to
+// call an endpoint, so it states what the check actually does, what it returns,
+// and — where it matters — what it does NOT establish. Kept separate from the
+// `d` fields above, which describe the path PARAMETER, not the route.
+const ROUTE_DESCRIPTIONS = {
+  "GET /v1/preflight/*":
+    "The check to run immediately before an agent sends USDC to an address it did not hard-code. Composite of OFAC SDN screening and on-chain address profiling, returned as clear_to_pay / caution / do_not_pay with the evidence behind it. 'clear_to_pay' means no configured negative signal fired — it is not an endorsement or a guarantee of counterparty legitimacy.",
+  "GET /v1/screen/address/*":
+    "Screen an EVM address against the US OFAC SDN digital-currency address list. Exact-list-match, refreshed daily. Screens that one list only — not EU, UN or UK/OFSI — and a non-match is not evidence the counterparty is legitimate. Not a regulated AML/KYT service and does not discharge any legal screening obligation.",
+  "GET /v1/token/verdict/*":
+    "Safety verdict for an ERC-20 on Base: ownership and mint authority, proxy upgradeability, liquidity and holder concentration, transfer-restriction patterns. Returns hold/caution/avoid with a score and the signals behind it. Heuristic static analysis, not a security audit — a proxy contract can change its implementation after this check.",
+  "GET /v1/wallet/dossier/*":
+    "Profile of a Base address before you transact with it: EOA or contract, first and last seen, transaction and counterparty counts, contract-verification status, and any flags raised. Behavioural signals only — they describe activity, not intent.",
+  "GET /v1/verify/payment/*":
+    "Verify a Base transaction actually did what a counterparty says it did: confirmation depth, success or revert, value, token, sender and recipient. Use it to confirm an inbound payment before releasing goods or data.",
+  "GET /v1/verify/token/*":
+    "Resolve a token symbol or contract address to the canonical Base contract, so an agent swapping or accepting 'USDC' gets the real one. Catches lookalike and impostor contracts sharing a symbol.",
+  "GET /v1/validate/iban/*":
+    "Validate an IBAN structurally: country length rules, character set and the ISO 7064 mod-97 check. Deterministic. A structurally valid IBAN is not proof the account exists, is open, or belongs to the party you are paying.",
+  "GET /v1/validate/vat/*":
+    "Validate an EU VAT number's structure and per-country check digits. Format only — no VIES lookup, so it does not confirm the registration is active or belongs to the named trader.",
+  "GET /v1/validate/bic/*":
+    "Validate a BIC/SWIFT code against ISO 9362: 8 or 11 characters, bank and country segments, location and branch codes. Structural only; does not confirm the institution is reachable.",
+  "GET /v1/validate/lei/*":
+    "Validate a Legal Entity Identifier against ISO 17442: 20 characters, allowed character set and mod-97 check digits. Structural only — no GLEIF registry lookup, so it does not confirm the LEI is issued or active.",
+  "GET /v1/validate/isin/*":
+    "Validate an ISIN against ISO 6166: country prefix, 9-character NSIN and Luhn check digit. Structural only; does not confirm the instrument exists or is tradeable.",
+  "POST /v1/batch/validate":
+    "Validate up to 500 identifiers in a single call — IBAN, VAT, BIC, LEI and ISIN mixed freely. One payment instead of 500, for reconciliation and onboarding runs. Same structural scope as the individual validators.",
+  "GET /v1/security/email/*":
+    "Email-authentication posture for a domain: SPF record and policy, DMARC policy and alignment, DKIM selector presence. Use it to judge whether mail claiming to be from a counterparty can be trusted. Live DNS.",
+  "GET /v1/security/tls/*":
+    "Live TLS probe of a hostname: certificate validity and expiry, issuer, chain completeness, protocol and cipher. Confirms an endpoint you are about to send data to is actually serving a valid certificate right now.",
+  "GET /v1/security/typosquat/*":
+    "Analyse a domain for brand impersonation: homoglyph substitution, character insertion and omission, TLD swaps and known-brand proximity. Returns a suspicion verdict with the specific patterns matched. Heuristic — a match is a reason to check, not proof of intent.",
+  "POST /v1/doc/html-to-markdown":
+    "Convert an HTML document to clean Markdown for LLM ingestion: strips scripts, styles and navigation chrome, preserves headings, lists, tables and links. Deterministic for identical input.",
+  "POST /v1/doc/diff":
+    "Structured diff of two text blocks: per-line additions, deletions and changes, plus an identical flag. Use it to detect whether a contract, policy or spec changed between two fetches.",
+  "GET /v1/data/portfolio/*":
+    "Native ETH and ERC-20 token balances for a Base address in one call, read live from chain at a stated block height.",
+  "GET /v1/data/activity/*":
+    "Recent transfer activity for an ERC-20 on Base: transfer count and volume over the sampled window, for judging whether a token is actually in use. Live chain read.",
+  "GET /v1/data/supply/*":
+    "Total and circulating supply for an ERC-20 on Base, read live from chain with decimals applied and the block height returned.",
+  "GET /v1/data/gas":
+    "Current Base gas conditions: base fee and priority fee in gwei, at a stated block height. For agents deciding whether to transact now or wait.",
+  "GET /v1/data/block":
+    "Latest Base block: number, timestamp and hash. The cheapest call on the service — useful as a liveness and connectivity check.",
+};
 function bazaarRouteKey(route) {
   const meta = BAZAAR_ROUTES[route];
   return meta?.p ? route.replace(/\/\*$/, `/:${meta.p}`) : route;
@@ -144,8 +193,8 @@ if (X402_ENABLED) {
         const cfg = { accepts: { scheme: "exact", price, network: NETWORK, payTo: PAY_TO }, mimeType: "application/json" };
         const ext = bazaarExtensionFor(route);
         if (ext) cfg.extensions = ext;
-        const desc = BAZAAR_ROUTES[route]?.d;
-        cfg.description = desc ? `${route} - ${desc}` : route;
+        const desc = ROUTE_DESCRIPTIONS[route] || BAZAAR_ROUTES[route]?.d;
+        cfg.description = ROUTE_DESCRIPTIONS[route] || (desc ? `${route} - ${desc}` : route);
         return [bazaarRouteKey(route), cfg];
       })
   );
