@@ -43,7 +43,7 @@ const X402_ENABLED = process.env.X402_ENABLED !== "false";
 // ---- Pricing (USDC) — tune freely, redeploys in seconds ----
 // NOTE: x402 middleware matches "*" wildcards (not ":param").
 const PRICES = {
-  "GET /v1/token/verdict/*": "$0.02",
+  "GET /v1/token/verdict/*": "$0.01",
   "GET /v1/wallet/dossier/*": "$0.01",
   "GET /v1/validate/iban/*": "$0.001",
   "GET /v1/validate/vat/*": "$0.001",
@@ -51,12 +51,18 @@ const PRICES = {
   "POST /v1/doc/html-to-markdown": "$0.002",
   "POST /v1/doc/diff": "$0.002",
   "POST /mcp": "$0.005",
-  "GET /v1/screen/address/*": "$0.05",
+  // Sanctions screening is a commodity: ~15 services in the ecosystem sell an OFAC
+  // lookup, the cheapest at $0.002 with three lists to our one. We cannot win on
+  // coverage without a week's work, so we win on price and stop pretending it is a
+  // differentiator. $0.001 is the floor tier and half the cheapest competitor.
+  // NOT free: a free route leaves the paid-routes map and therefore leaves the
+  // Bazaar catalog, and the stale $0.05 entry already published cannot be removed.
+  "GET /v1/screen/address/*": "$0.001",
   "GET /v1/verify/payment/*": "$0.02",
   "GET /v1/verify/token/*": "$0.005",
   "GET /v1/validate/lei/*": "$0.002",
   "GET /v1/validate/isin/*": "$0.001",
-  "GET /v1/preflight/*": "$0.06",
+  "GET /v1/preflight/*": "$0.01",
   "POST /v1/batch/validate": "$0.10",
   "GET /v1/security/email/*": "$0.01",
   "GET /v1/security/tls/*": "$0.01",
@@ -107,7 +113,7 @@ const ROUTE_DESCRIPTIONS = {
   "GET /v1/preflight/*":
     "The check to run immediately before an agent sends USDC to an address it did not hard-code. Composite of OFAC SDN screening and on-chain address profiling, returned as clear_to_pay / caution / do_not_pay with the evidence behind it. 'clear_to_pay' means no configured negative signal fired — it is not an endorsement or a guarantee of counterparty legitimacy.",
   "GET /v1/screen/address/*":
-    "Screen an EVM address against the US OFAC SDN digital-currency address list. Exact-list-match, refreshed daily. Screens that one list only — not EU, UN or UK/OFSI — and a non-match is not evidence the counterparty is legitimate. Not a regulated AML/KYT service and does not discharge any legal screening obligation.",
+    "Screen an EVM address against the US OFAC SDN digital-currency address list at $0.001 — the cheapest sanctions lookup in the ecosystem, Ed25519-signed so you can verify it offline. Exact-list-match, refreshed daily. Screens that one list only — not EU, UN or UK/OFSI — and a non-match is not evidence the counterparty is legitimate. Not a regulated AML/KYT service and does not discharge any legal screening obligation.",
   "GET /v1/token/verdict/*":
     "Safety verdict for an ERC-20 on Base: ownership and mint authority, proxy upgradeability, liquidity and holder concentration, transfer-restriction patterns. Returns hold/caution/avoid with a score and the signals behind it. Heuristic static analysis, not a security audit — a proxy contract can change its implementation after this check.",
   "GET /v1/wallet/dossier/*":
