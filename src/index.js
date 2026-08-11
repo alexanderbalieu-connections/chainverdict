@@ -23,6 +23,8 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const LANDING = readFileSync(join(__dir, "landing.html"), "utf8");
 
 const app = express();
+
+app.set('trust proxy', true); // Render terminates TLS at its proxy; without this req.protocol is 'http' and CDP rejects the bazaar declaration
 let mcpGate = null;
 app.use(signResponses("/v1/"));
 app.use(express.json({ limit: "2mb" }));
