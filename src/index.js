@@ -42,6 +42,7 @@ const X402_ENABLED = process.env.X402_ENABLED !== "false";
 
 // ---- Pricing (USDC) — tune freely, redeploys in seconds ----
 // NOTE: x402 middleware matches "*" wildcards (not ":param").
+const PRICE = (k) => (PRICES[k] || "see /.well-known/x402.json").replace("$", "$");
 const PRICES = {
   "GET /v1/token/verdict/*": "$0.01",
   "GET /v1/wallet/dossier/*": "$0.01",
@@ -267,28 +268,28 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 > Billing is per call in USDC on Base (x402) — no API keys, no signup, no subscription.
 
 ## Paid endpoints (x402, USDC on Base)
-- GET https://chainverdict.xyz/v1/token/verdict/{address} — token safety verdict on Base, $0.02
-- GET https://chainverdict.xyz/v1/wallet/dossier/{address} — wallet profile, $0.01
-- GET https://chainverdict.xyz/v1/data/gas — live Base gas oracle (base fee, priority fees, congestion), $0.002
-- GET https://chainverdict.xyz/v1/data/block — latest Base block info & utilization, $0.001
-- GET https://chainverdict.xyz/v1/data/supply/{token} — token supply & burn distribution on Base, $0.003
-- GET https://chainverdict.xyz/v1/data/activity/{token} — recent transfer count/volume/unique wallets, $0.005
-- GET https://chainverdict.xyz/v1/data/portfolio/{address} — ETH + canonical token balances, $0.004
-- GET https://chainverdict.xyz/v1/security/email/{domain} — SPF/DMARC/DKIM email-spoofing posture, $0.01
-- GET https://chainverdict.xyz/v1/security/tls/{domain} — live TLS certificate validity/expiry check, $0.01
-- GET https://chainverdict.xyz/v1/security/typosquat/{domain} — brand look-alike/homoglyph structural check, $0.005
-- GET https://chainverdict.xyz/v1/preflight/{address} — one-call pre-payment trust check (sanctions + wallet profile + verdict), $0.06
-- POST https://chainverdict.xyz/v1/batch/validate — batch-validate up to 500 IBAN/VAT/BIC/LEI/ISIN items, $0.10
-- GET https://chainverdict.xyz/v1/screen/address/{address} — OFAC SDN sanctions screening (daily-refreshed), $0.05
-- GET https://chainverdict.xyz/v1/verify/payment/{txhash} — on-chain ERC-20 settlement verification on Base, $0.02
-- GET https://chainverdict.xyz/v1/verify/token/{addressOrSymbol} — canonical token verification on Base, $0.005
-- GET https://chainverdict.xyz/v1/validate/lei/{lei} — ISO 17442 LEI validation, $0.002
-- GET https://chainverdict.xyz/v1/validate/isin/{isin} — ISO 6166 ISIN validation, $0.001
-- GET https://chainverdict.xyz/v1/validate/iban/{iban} — IBAN mod-97 validation, $0.001
-- GET https://chainverdict.xyz/v1/validate/vat/{vat} — EU VAT format+checksum validation, $0.001
-- GET https://chainverdict.xyz/v1/validate/bic/{bic} — BIC/SWIFT validation, $0.001
-- POST https://chainverdict.xyz/v1/doc/html-to-markdown — HTML to Markdown, $0.002
-- POST https://chainverdict.xyz/v1/doc/diff — structured text diff, $0.002
+- GET https://chainverdict.xyz/v1/token/verdict/{address} — token safety verdict on Base, ${PRICE("GET /v1/token/verdict/*")}
+- GET https://chainverdict.xyz/v1/wallet/dossier/{address} — wallet profile, ${PRICE("GET /v1/wallet/dossier/*")}
+- GET https://chainverdict.xyz/v1/data/gas — live Base gas oracle (base fee, priority fees, congestion), ${PRICE("GET /v1/data/gas")}
+- GET https://chainverdict.xyz/v1/data/block — latest Base block info & utilization, ${PRICE("GET /v1/data/block")}
+- GET https://chainverdict.xyz/v1/data/supply/{token} — token supply & burn distribution on Base, ${PRICE("GET /v1/data/supply/*")}
+- GET https://chainverdict.xyz/v1/data/activity/{token} — recent transfer count/volume/unique wallets, ${PRICE("GET /v1/data/activity/*")}
+- GET https://chainverdict.xyz/v1/data/portfolio/{address} — ETH + canonical token balances, ${PRICE("GET /v1/data/portfolio/*")}
+- GET https://chainverdict.xyz/v1/security/email/{domain} — SPF/DMARC/DKIM email-spoofing posture, ${PRICE("GET /v1/security/email/*")}
+- GET https://chainverdict.xyz/v1/security/tls/{domain} — live TLS certificate validity/expiry check, ${PRICE("GET /v1/security/tls/*")}
+- GET https://chainverdict.xyz/v1/security/typosquat/{domain} — brand look-alike/homoglyph structural check, ${PRICE("GET /v1/security/typosquat/*")}
+- GET https://chainverdict.xyz/v1/preflight/{address} — one-call pre-payment trust check (sanctions + wallet profile + verdict), ${PRICE("GET /v1/preflight/*")}
+- POST https://chainverdict.xyz/v1/batch/validate — batch-validate up to 500 IBAN/VAT/BIC/LEI/ISIN items, ${PRICE("POST /v1/batch/validate")}
+- GET https://chainverdict.xyz/v1/screen/address/{address} — OFAC SDN sanctions screening (daily-refreshed), ${PRICE("GET /v1/screen/address/*")}
+- GET https://chainverdict.xyz/v1/verify/payment/{txhash} — on-chain ERC-20 settlement verification on Base, ${PRICE("GET /v1/verify/payment/*")}
+- GET https://chainverdict.xyz/v1/verify/token/{addressOrSymbol} — canonical token verification on Base, ${PRICE("GET /v1/verify/token/*")}
+- GET https://chainverdict.xyz/v1/validate/lei/{lei} — ISO 17442 LEI validation, ${PRICE("GET /v1/validate/lei/*")}
+- GET https://chainverdict.xyz/v1/validate/isin/{isin} — ISO 6166 ISIN validation, ${PRICE("GET /v1/validate/isin/*")}
+- GET https://chainverdict.xyz/v1/validate/iban/{iban} — IBAN mod-97 validation, ${PRICE("GET /v1/validate/iban/*")}
+- GET https://chainverdict.xyz/v1/validate/vat/{vat} — EU VAT format+checksum validation, ${PRICE("GET /v1/validate/vat/*")}
+- GET https://chainverdict.xyz/v1/validate/bic/{bic} — BIC/SWIFT validation, ${PRICE("GET /v1/validate/bic/*")}
+- POST https://chainverdict.xyz/v1/doc/html-to-markdown — HTML to Markdown, ${PRICE("POST /v1/doc/html-to-markdown")}
+- POST https://chainverdict.xyz/v1/doc/diff — structured text diff, ${PRICE("POST /v1/doc/diff")}
 
 ## Machine-readable
 - Methodology (free): https://chainverdict.xyz/v1/methodology
@@ -416,8 +417,8 @@ app.post("/v1/doc/diff", (req, res) => {
 
 // ---- Hosted MCP endpoint: list free, calls x402-gated flat $0.005 ----
 app.post("/mcp", (req, res) => {
-  if (mcpGate && isPaidMcpCall(req.body)) return mcpGate(req, res, () => handleMcpRequest(req, res));
-  return handleMcpRequest(req, res);
+  if (mcpGate && isPaidMcpCall(req.body)) return mcpGate(req, res, () => handleMcpRequest(req, res, PRICES));
+  return handleMcpRequest(req, res, PRICES);
 });
 app.get("/mcp", (_req, res) => res.status(405).json({
   jsonrpc: "2.0", error: { code: -32000, message: "Stateless server: POST only. tools/list is free; tools/call is x402-paid ($0.005 USDC on Base)." }, id: null
