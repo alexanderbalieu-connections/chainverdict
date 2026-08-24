@@ -221,7 +221,7 @@ app.get("/", (req, res) => {
   res.json({
   service: "ChainVerdict",
   homepage: "https://chainverdict.xyz",
-  description: "Evidence-backed checks an autonomous agent can run before it moves money or trusts a counterparty: sanctions screening, payee risk, token safety, payment verification, financial-identifier validation and web-security posture. Every answer states what was checked, when, how confident it is and what it does not mean.",
+  description: "Evidence-backed checks an autonomous agent can run before it moves money or trusts a counterparty: sanctions screening, payee risk, token safety, payment verification, financial-identifier validation and web-security posture. Every answer states what was checked, when, how the answer was produced and what it does not mean.",
   payment: { protocol: "x402", network: NETWORK, currency: "USDC" },
   endpoints: Object.entries(PRICES).map(([route, price]) => ({ route, price })),
   openapi: "/openapi.json",
@@ -258,8 +258,11 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 > validate an IBAN/VAT/BIC/LEI/ISIN, or check a domain's email/TLS posture — in one call, with no account.
 >
 > Every paid response carries a machine-readable _evidence object: checksPerformed, dataSources, freshness
-> (with explicit stale-data risk), confidence, limitations, and whether human approval is recommended.
-> Responses are Ed25519-signed so you can verify offline that the answer is genuinely ChainVerdict's.
+> (with explicit stale-data risk), an ordinal assurance level, limitations, and whether human approval is recommended.
+> Assurance is ordinal, never numeric: a number would imply a calibration that has not been performed.
+> Responses carry an Ed25519 signature in an x-signature header over canonical JSON + '|' + x-signed-at;
+> the public key is base64 SPKI at /.well-known/signing-key.json, which states the exact recipe. This is not
+> the compact-JWS form the other services use, so verify these programmatically rather than at /verify.
 > Methodology is public and free to read: https://chainverdict.xyz/v1/methodology
 >
 > Honest scope: these are informational signals for decision support. They are NOT regulated financial, legal or
@@ -453,7 +456,7 @@ function openapiSpec() {
   return {
     openapi: "3.0.3",
     info: { title: "ChainVerdict API", version: "2.0.0", contact: { email: "contact@chainverdict.xyz" },
-      description: "Evidence-backed checks for autonomous agents before moving money or trusting a counterparty. Every paid response includes an _evidence object (checks performed, data sources, freshness, confidence, limitations, recommended action) and is Ed25519-signed. Methodology: /v1/methodology. Informational signals only - not regulated financial, legal or compliance advice. Billing is per call in USDC on Base (x402); unpaid requests receive HTTP 402 with payment requirements." },
+      description: "Evidence-backed checks for autonomous agents before moving money or trusting a counterparty. Every paid response includes an _evidence object (checks performed, data sources, freshness, an ordinal assurance level, limitations, recommended action) and is Ed25519-signed. Methodology: /v1/methodology. Informational signals only - not regulated financial, legal or compliance advice. Billing is per call in USDC on Base (x402); unpaid requests receive HTTP 402 with payment requirements." },
     paths: Object.fromEntries(Object.entries(PRICES).filter(([r]) => r !== "POST /mcp").map(([route, price]) => {
       const [method, path] = route.split(" ");
       const RENAME = {

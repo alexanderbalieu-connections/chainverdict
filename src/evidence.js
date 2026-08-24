@@ -292,7 +292,7 @@ export function methodologyDocument(prices = {}) {
     methodologyVersion: METHODOLOGY_VERSION,
     published: new Date().toISOString(),
     principle:
-      "Every paid response states what was checked, when, from which source, how confident the result is, and what it does not mean. Signals are designed to be verifiable by the buyer rather than trusted on assertion.",
+      "Every paid response states what was checked, when, from which source, how the answer was produced, and what it does not mean. Signals are designed to be verifiable by the buyer rather than trusted on assertion.",
     evidenceModel: {
       assurance:
         "assurance.level is an ordinal label describing HOW an answer was produced (deterministic / structural / observed / exact-list-match / heuristic). It is deliberately NOT a numeric score, because a number implies calibration that ChainVerdict has not performed. No level should be read as a probability that a subject is safe, legitimate or correct.",
@@ -305,7 +305,7 @@ export function methodologyDocument(prices = {}) {
       limitations:
         "Every response carries the specific limitations of that check plus service-wide limitations. These are part of the product, not a disclaimer footer.",
       signature:
-        "Responses are Ed25519-signed (compact JWS). Verify against /.well-known/signing-key.json to confirm a response is genuinely ChainVerdict's and was not altered in transit — and see integrityVsTruth above for what that does not establish.",
+        "Responses carry an Ed25519 signature in an x-signature header, computed over canonical JSON (keys sorted recursively, UTF-8) concatenated with '|' and the x-signed-at timestamp. The public key is published as base64 SPKI at /.well-known/signing-key.json, which states the exact verification recipe. This is NOT the compact-JWS form used by RegRails, TradeRails and x402pulse, so the browser verifier at https://reg.chainverdict.xyz/verify cannot currently check ChainVerdict receipts — verify these programmatically instead. See integrityVsTruth above for what a valid signature does not establish.",
     },
     globalLimitations: GLOBAL_LIMITS,
     endpoints: REGISTRY.map((e) => ({
