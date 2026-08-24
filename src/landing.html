@@ -74,6 +74,7 @@ pre .k{color:#7FB4EC}
     <a href="#evidence">Evidence</a>
     <a href="/v1/methodology">Methodology</a>
     <a href="#try">Try it</a>
+    <a href="#portfolio">Portfolio</a>
     <a href="/openapi.json">OpenAPI</a>
   </nav>
 </header>
@@ -169,6 +170,48 @@ pre .k{color:#7FB4EC}
 console.log(<span class="k">await</span> res.json()); <span class="k">// → verdict, score, reasons</span></pre>
 </section>
 
+<section id="portfolio">
+  <h2>Four services, one operator</h2>
+  <p class="sub">ChainVerdict is one of four. All are payable per call over x402 with no account, all sign their responses, and all publish what their answers do <em>not</em> establish. <a href="https://pulse.chainverdict.xyz/.well-known/portfolio.json">Machine-readable manifest ↗</a></p>
+
+  <table>
+    <tr><th>Service</th><th>What it answers</th><th>From</th></tr>
+    <tr>
+      <td><strong>ChainVerdict</strong><br><span class="mono" style="font-size:12px;opacity:.6">chainverdict.xyz</span></td>
+      <td>Checks before money moves: sanctions screening, payee preflight, token safety, settlement verification, identifier and domain posture.</td>
+      <td class="v">$0.001</td>
+    </tr>
+    <tr>
+      <td><strong>TradeRails</strong><br><span class="mono" style="font-size:12px;opacity:.6"><a href="https://trade.chainverdict.xyz">trade.chainverdict.xyz ↗</a></span></td>
+      <td>Trade and logistics identifiers: GTIN/GS1, SSCC-18, ISO 6346 containers, IMO numbers, HS-code triage. The check digits are trivial arithmetic and priced at the floor — they exist as preflight steps in trade flows, not as products.</td>
+      <td class="v">$0.004</td>
+    </tr>
+    <tr>
+      <td><strong>RegRails</strong><br><span class="mono" style="font-size:12px;opacity:.6"><a href="https://reg.chainverdict.xyz">reg.chainverdict.xyz ↗</a></span></td>
+      <td>EU regulatory scope and structure: CBAM, EUDR due diligence and plot geometry, AI Act Article 50. Where a code alone cannot decide — Annex I <em>ex</em> entries, or oleochemicals whose coverage depends on feedstock — it returns <span class="mono">requires_verification</span> rather than a guess. <a href="https://reg.chainverdict.xyz/tools/eudr">Free EUDR validator ↗</a></td>
+      <td class="v">$0.02</td>
+    </tr>
+    <tr>
+      <td><strong>x402pulse</strong><br><span class="mono" style="font-size:12px;opacity:.6"><a href="https://pulse.chainverdict.xyz">pulse.chainverdict.xyz ↗</a></span></td>
+      <td>Independent observation of third-party x402 endpoints — quality, uptime, price drift — and the anchored historical archive of all of it.</td>
+      <td class="v">$0.03</td>
+    </tr>
+  </table>
+
+  <h2 style="margin-top:44px">The archive</h2>
+  <p class="sub">x402pulse has been probing third-party endpoints every ten minutes since <strong>7 August 2026</strong>. Each day is reduced to a Merkle root, chained to the previous day, and timestamped into Bitcoin via OpenTimestamps.</p>
+  <p class="sub">Anyone can rebuild this software and start observing tomorrow. Nobody can produce a timestamp dated earlier than they created it. That is the difference between an archive and a claim — and it means the observation record can be checked without trusting the operator.</p>
+  <div class="chips">
+    <span><a href="https://pulse.chainverdict.xyz/v1/datasets/manifest" style="text-decoration:none">What the archive holds ↗</a></span>
+    <span><a href="https://pulse.chainverdict.xyz/v1/archive/anchors" style="text-decoration:none">Every root and its proof ↗</a></span>
+    <span><a href="https://pulse.chainverdict.xyz/v1/selfcheck" style="text-decoration:none">What is currently broken ↗</a></span>
+  </div>
+
+  <h2 style="margin-top:44px">Check a receipt yourself</h2>
+  <p class="sub">Paste any signed response into <a href="https://reg.chainverdict.xyz/verify">the verifier ↗</a>. It checks the Ed25519 signature <strong>in your own browser</strong> against the published key and renders the evidence record. Nothing is sent anywhere — a verification tool you have to trust the server for is not a verification tool.</p>
+  <p class="sub">A valid signature proves a response came from the service unaltered. <strong>It does not prove the answer is correct.</strong> A signed wrong answer is still wrong, and still signed. That sentence ships inside every response and is meant literally.</p>
+</section>
+
 <div class="foot">
   <div>
     <a href="/v1/methodology">Methodology</a>
@@ -177,6 +220,8 @@ console.log(<span class="k">await</span> res.json()); <span class="k">// → ver
     <a href="https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block">Quality attestation</a>
     <a href="https://smithery.ai/servers/alexander-balieu/chainverdict">MCP on Smithery</a>
     <a href="/.well-known/x402.json">x402 discovery</a>
+    <a href="https://reg.chainverdict.xyz/verify">Verify a receipt</a>
+    <a href="https://pulse.chainverdict.xyz/v1/datasets/manifest">Archive</a>
     <a href="/health">Status</a>
   </div>
   <div style="max-width:52ch">
