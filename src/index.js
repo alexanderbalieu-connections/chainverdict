@@ -238,7 +238,18 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now(), methodolo
 // audit how a verdict is produced before paying for one.
 app.get("/v1/methodology", (_req, res) => res.json(methodologyDocument()));
 app.get("/openapi.json", (_req, res) => res.json(openapiSpec()));
-app.get("/.well-known/signing-key.json", (_req, res) => res.json(signingInfo()));
+// CORS: the verifier page at reg.chainverdict.xyz/verify fetches published keys
+// from every service. A public signing key is public by definition — without
+// this header the browser blocks the fetch and receipts from this service
+// silently appear unverifiable.
+app.get("/.well-known/signing-key.json", (_req, res) => {
+  res.set("access-control-allow-origin", "*");
+  res.json(signingInfo());
+});
+// One portfolio manifest, maintained in a single place rather than copied here.
+app.get("/.well-known/portfolio.json", (_req, res) =>
+  res.redirect(302, "https://pulse.chainverdict.xyz/.well-known/portfolio.json"));
+
 app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 `# ChainVerdict
 > Evidence-backed checks an autonomous agent runs BEFORE it moves money or trusts a counterparty.
