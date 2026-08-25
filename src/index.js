@@ -223,8 +223,16 @@ app.get("/", (req, res) => {
   homepage: "https://chainverdict.xyz",
   description: "Evidence-backed checks an autonomous agent can run before it moves money or trusts a counterparty: sanctions screening, payee risk, token safety, payment verification, financial-identifier validation and web-security posture. Every answer states what was checked, when, how the answer was produced and what it does not mean.",
   payment: { protocol: "x402", network: NETWORK, currency: "USDC" },
-  endpoints: Object.entries(PRICES).map(([route, price]) => ({ route, price })),
+  // POST /mcp is filtered out of the resource lists in x402.json (line ~312) and
+  // openapi.json because it is a transport, not a resource: tools/list is free
+  // and only an actual tool call reaches the payment gate. This descriptor did
+  // not filter it, so the root advertised 23 routes while every other surface
+  // advertised 22 — the same intent written in two places and forgotten in a
+  // third. MCP is still advertised, one line below, as a capability rather than
+  // as something an agent can buy for $0.005 and get a result back.
+  endpoints: Object.entries(PRICES).filter(([r]) => r !== "POST /mcp").map(([route, price]) => ({ route, price })),
   openapi: "/openapi.json",
+  mcp: "/mcp",
   llms: "/llms.txt",
   methodology: "/v1/methodology",
   methodologyVersion: METHODOLOGY_VERSION,
@@ -457,6 +465,7 @@ function openapiSpec() {
     openapi: "3.0.3",
     info: { title: "ChainVerdict API", version: "2.0.0", contact: { email: "contact@chainverdict.xyz" },
       description: "Evidence-backed checks for autonomous agents before moving money or trusting a counterparty. Every paid response includes an _evidence object (checks performed, data sources, freshness, an ordinal assurance level, limitations, recommended action) and is Ed25519-signed. Methodology: /v1/methodology. Informational signals only - not regulated financial, legal or compliance advice. Billing is per call in USDC on Base (x402); unpaid requests receive HTTP 402 with payment requirements." },
+    servers: [{ url: "https://chainverdict.xyz" }],
     paths: Object.fromEntries(Object.entries(PRICES).filter(([r]) => r !== "POST /mcp").map(([route, price]) => {
       const [method, path] = route.split(" ");
       const RENAME = {
