@@ -239,7 +239,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now(), methodolo
 // audit how a verdict is produced before paying for one.
 app.get("/v1/methodology", (_req, res) => res.json(methodologyDocument()));
 app.get("/openapi.json", (_req, res) => res.json(openapiSpec()));
-// CORS: the verifier page at reg.chainverdict.xyz/verify fetches published keys
+// CORS: the verifier page at pulse.chainverdict.xyz/verify fetches published keys
 // from every service. A public signing key is public by definition — without
 // this header the browser blocks the fetch and receipts from this service
 // silently appear unverifiable.
