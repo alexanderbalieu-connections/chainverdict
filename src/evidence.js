@@ -305,7 +305,7 @@ export function methodologyDocument(prices = {}) {
       limitations:
         "Every response carries the specific limitations of that check plus service-wide limitations. These are part of the product, not a disclaimer footer.",
       signature:
-        "Responses carry an Ed25519 signature in an x-signature header, computed over canonical JSON (keys sorted recursively, UTF-8) concatenated with '|' and the x-signed-at timestamp. The public key is published as base64 SPKI at /.well-known/signing-key.json, which states the exact verification recipe. This is NOT the compact-JWS form used by RegRails, TradeRails and x402pulse, so the browser verifier at https://pulse.chainverdict.xyz/verify cannot currently check ChainVerdict receipts — verify these programmatically instead. See integrityVsTruth above for what a valid signature does not establish.",
+        "Responses carry an Ed25519 signature in an x-signature header, computed over canonical JSON (keys sorted recursively, UTF-8) concatenated with '|' and the x-signed-at timestamp. The public key is published as base64 SPKI at /.well-known/signing-key.json, which states the exact verification recipe. This is NOT the compact-JWS form used by TradeRails and x402pulse, so the browser verifier at https://pulse.chainverdict.xyz/verify cannot currently check ChainVerdict receipts — verify these programmatically instead. See integrityVsTruth above for what a valid signature does not establish.",
     },
     globalLimitations: GLOBAL_LIMITS,
     endpoints: REGISTRY.map((e) => ({
