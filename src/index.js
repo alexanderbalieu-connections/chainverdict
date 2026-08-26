@@ -33,6 +33,33 @@ app.use(express.json({ limit: "2mb" }));
 // signature covers the evidence block too.
 app.use(evidenceMiddleware());
 
+// One canonical host. www and the apex both served identical JSON with no
+// redirect between them, so agents, crawlers and link-shorteners each picked a
+// different address for the same service.
+app.use((req, res, next) => {
+  // req.hostname, not req.headers.host: with trust proxy set this honours the
+  // X-Forwarded-Host that Render and Cloudflare put in front, and it drops the
+  // port. Reading the raw header gets the internal address behind the proxy.
+  const host = req.hostname || "";
+  const bare = host.slice(4);
+  if (host.startsWith("www.") && bare.includes(".")) return res.redirect(301, "https://" + bare + req.originalUrl);
+  next();
+});
+
+// CORS on the public documents. A discovery document a browser cannot read is
+// not discoverable: an agent running in a page — or this portfolio's own status
+// dashboard — got an opaque CORS failure instead of the spec, while x402pulse,
+// which sets the header, was readable. These are public documents with no
+// credentials and no side effects; there is nothing here to protect.
+const PUBLIC_DOCS = new Set([
+  "/", "/openapi.json", "/llms.txt", "/health", "/robots.txt", "/sitemap.xml",
+  "/.well-known/x402.json", "/v1/methodology",
+]);
+app.use((req, res, next) => {
+  if (req.method === "GET" && PUBLIC_DOCS.has(req.path)) res.set("access-control-allow-origin", "*");
+  next();
+});
+
 const PAY_TO = process.env.PAY_TO_ADDRESS;            // your Base wallet (public address only)
 const RAW_NET = process.env.X402_NETWORK || "base";
 const NETWORK = RAW_NET === "base" ? "eip155:8453" : RAW_NET === "base-sepolia" ? "eip155:84532" : RAW_NET; // CAIP-2 (x402 v2)
@@ -247,6 +274,29 @@ app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now(), methodolo
 // audit how a verdict is produced before paying for one.
 app.get("/v1/methodology", (_req, res) => res.json(methodologyDocument()));
 app.get("/openapi.json", (_req, res) => res.json(openapiSpec()));
+
+// A service whose whole strategy is being discovered was publishing no crawler
+// policy at all: both of these returned 404. Nothing here is private, and the
+// agent-readable entry points are named explicitly rather than left to be found.
+app.get("/robots.txt", (_req, res) => res.type("text/plain").send(
+`User-agent: *
+Allow: /
+
+# Agent-readable entry points
+# llms.txt:   https://chainverdict.xyz/llms.txt
+# OpenAPI:    https://chainverdict.xyz/openapi.json
+# x402:       https://chainverdict.xyz/.well-known/x402.json
+# Methodology:https://chainverdict.xyz/v1/methodology
+
+Sitemap: https://chainverdict.xyz/sitemap.xml
+`));
+app.get("/sitemap.xml", (_req, res) => res.type("application/xml").send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${["/", "/llms.txt", "/openapi.json", "/.well-known/x402.json", "/v1/methodology"]
+  .map((u) => `  <url><loc>https://chainverdict.xyz${u}</loc></url>`).join("\n")}
+</urlset>
+`));
 // CORS: the verifier page at pulse.chainverdict.xyz/verify fetches published keys
 // from every service. A public signing key is public by definition — without
 // this header the browser blocks the fetch and receipts from this service
@@ -495,4 +545,8 @@ app.get("/favicon.ico", (_req, res) => res.sendFile(join(__dir, "favicon.ico")))
 
 const PORT = process.env.PORT || 3000;
 startSanctionsRefresher();
-app.listen(PORT, () => console.log(`AgentPay listening on :${PORT}`));
+// Exported so tests can boot the real app and read the real served surfaces.
+// Every defect in the 24-25 August audit returned HTTP 200, so asserting the
+// response body is the only assertion worth making.
+export { app };
+if (!process.env.CV_NO_LISTEN) app.listen(PORT, () => console.log(`AgentPay listening on :${PORT}`));
