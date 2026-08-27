@@ -28,46 +28,6 @@ const R = (o) => o; // readability helper
 // Ordered: first matching prefix wins.
 const REGISTRY = [
   R({
-    match: "/v1/screen/address",
-    subject: "crypto address",
-    decision: "sanctions_screen",
-    checks: ["OFAC SDN digital-currency address list match (exact, case-insensitive)"],
-    sources: [{ name: "US Treasury OFAC SDN list (digital currency addresses)", refresh: "daily" }],
-    freshness: { basis: "daily-refresh", maxUsefulAgeSeconds: 86400 },
-    assurance: { level: "exact-list-match", basis: "exact string match against a published list; high precision, bounded recall (a list can be incomplete or out of date)" },
-    humanApprovalRecommended: "on_match",
-    limitations: [
-      "Screens the US OFAC SDN digital-currency address list ONLY. It does NOT screen EU, UN, UK/OFSI, or any other sanctions regime.",
-      "A non-match means the address is absent from that one list at the last refresh. It is NOT evidence that the counterparty is legitimate, unsanctioned elsewhere, or safe to pay.",
-      "Newly designated addresses appear only after the next refresh. Screening is not real-time.",
-      "This is an informational screening signal, not a regulated AML/KYT/sanctions-compliance service, and does not discharge any legal screening obligation.",
-    ],
-  }),
-  R({
-    match: "/v1/preflight",
-    subject: "payee address",
-    decision: "payee_risk",
-    checks: [
-      "OFAC SDN digital-currency address list match",
-      "On-chain address profile (EOA vs contract, balance, activity band)",
-      "Composite heuristic verdict: clear_to_pay / caution / do_not_pay",
-    ],
-    sources: [
-      { name: "US Treasury OFAC SDN list (digital currency addresses)", refresh: "daily" },
-      { name: "Base mainnet RPC", refresh: "per-request" },
-    ],
-    freshness: { basis: "daily-refresh+live-chain", maxUsefulAgeSeconds: 60 },
-    assurance: { level: "heuristic", basis: "composite of one exact list match and heuristic address signals; the heuristic component is not validated against a labelled dataset" },
-    humanApprovalRecommended: "unless_clear_to_pay",
-    limitations: [
-      "'clear_to_pay' means no configured negative signal was found. It is NOT an endorsement, a guarantee of counterparty legitimacy, or a recommendation to transact.",
-      "Sanctions coverage is the US OFAC SDN digital-currency list only; other regimes are not screened.",
-      "Address heuristics detect patterns (unused address, contract vs EOA), not intent. A fresh address is common in legitimate use.",
-      "Cannot detect off-chain fraud, social engineering, address substitution in your own pipeline, or a counterparty who is legitimate today and not tomorrow.",
-      "Informational risk signal only; not regulated financial, legal, or compliance advice.",
-    ],
-  }),
-  R({
     match: "/v1/token/verdict",
     subject: "ERC-20 contract",
     decision: "token_risk",

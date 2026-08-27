@@ -10,7 +10,6 @@ import { validateIBAN, validateVAT, validateBIC } from "./lib/validators.js";
 import { tokenVerdict, walletDossier } from "./lib/chain.js";
 import { handleMcpRequest, isPaidMcpCall } from "./mcp-http.js";
 import { validateLEI, validateISIN, verifyToken, verifyPayment } from "./lib/institutional.js";
-import { screenAddress, startSanctionsRefresher } from "./lib/sanctions.js";
 import { signResponses, signingInfo } from "./lib/signing.js";
 import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
 import { gasOracle, tokenSupply, tokenActivity, blockInfo, portfolio } from "./lib/onchain-data.js";
@@ -90,18 +89,10 @@ const PRICES = {
   "POST /v1/doc/html-to-markdown": "$0.002",
   "POST /v1/doc/diff": "$0.002",
   "POST /mcp": "$0.005",
-  // Sanctions screening is a commodity: ~15 services in the ecosystem sell an OFAC
-  // lookup, the cheapest at $0.002 with three lists to our one. We cannot win on
-  // coverage without a week's work, so we win on price and stop pretending it is a
-  // differentiator. $0.001 is the floor tier and half the cheapest competitor.
-  // NOT free: a free route leaves the paid-routes map and therefore leaves the
-  // Bazaar catalog, and the stale $0.05 entry already published cannot be removed.
-  "GET /v1/screen/address/*": "$0.001",
   "GET /v1/verify/payment/*": "$0.02",
   "GET /v1/verify/token/*": "$0.005",
   "GET /v1/validate/lei/*": "$0.002",
   "GET /v1/validate/isin/*": "$0.001",
-  "GET /v1/preflight/*": "$0.01",
   "POST /v1/batch/validate": "$0.10",
   "GET /v1/security/email/*": "$0.01",
   "GET /v1/security/tls/*": "$0.01",
@@ -124,12 +115,10 @@ const BAZAAR_ROUTES = {
   "GET /v1/validate/iban/*":     { p: "iban",    ex: "DE89370400440532013000", d: "IBAN incl. country prefix", out: { valid: true } },
   "GET /v1/validate/vat/*":      { p: "vat",     ex: "DE123456789", d: "EU VAT number incl. country prefix", out: { valid: true } },
   "GET /v1/validate/bic/*":      { p: "bic",     ex: "DEUTDEFF", d: "BIC/SWIFT code, 8 or 11 chars", out: { valid: true } },
-  "GET /v1/screen/address/*":    { p: "addr",    ex: "0xAe2634E709c454f2720C65A0b2F9ba168e431842", d: "EVM address to screen against the OFAC SDN list", out: { sanctioned_match: false } },
   "GET /v1/verify/payment/*":    { p: "tx",      ex: "0x94efa7ccb96a6e906f5a8bb511b63c44cbaf98239d368ac2d428a8c176578082", d: "Base transaction hash", out: { confirmations: 12 } },
   "GET /v1/verify/token/*":      { p: "q",       ex: "USDC", d: "Token contract address or symbol", out: { canonical: true } },
   "GET /v1/validate/lei/*":      { p: "lei",     ex: "5299000J2N45DDNE4Y28", d: "20-character LEI (ISO 17442)", out: { valid: true } },
   "GET /v1/validate/isin/*":     { p: "isin",    ex: "US0378331005", d: "12-character ISIN (ISO 6166)", out: { valid: true } },
-  "GET /v1/preflight/*":         { p: "addr",    ex: "0xAe2634E709c454f2720C65A0b2F9ba168e431842", d: "Payee address to check before sending funds", out: { verdict: "clear_to_pay" } },
   "GET /v1/security/email/*":    { p: "domain",  ex: "example.com", d: "Domain to check SPF/DMARC/DKIM", out: { spf: true } },
   "GET /v1/security/tls/*":      { p: "domain",  ex: "example.com", d: "Hostname to probe over TLS", out: { valid: true } },
   "GET /v1/security/typosquat/*":{ p: "domain",  ex: "c0inbase.com", d: "Domain to analyse for brand impersonation", out: { suspicious: true } },
@@ -149,10 +138,6 @@ const BAZAAR_ROUTES = {
 // and — where it matters — what it does NOT establish. Kept separate from the
 // `d` fields above, which describe the path PARAMETER, not the route.
 const ROUTE_DESCRIPTIONS = {
-  "GET /v1/preflight/*":
-    "The check to run immediately before an agent sends USDC to an address it did not hard-code. Composite of OFAC SDN screening and on-chain address profiling, returned as clear_to_pay / caution / do_not_pay with the evidence behind it. 'clear_to_pay' means no configured negative signal fired — it is not an endorsement or a guarantee of counterparty legitimacy.",
-  "GET /v1/screen/address/*":
-    "Screen an EVM address against the US OFAC SDN digital-currency address list at $0.001 — the cheapest sanctions lookup in the ecosystem, Ed25519-signed so you can verify it offline. Exact-list-match, refreshed daily. Screens that one list only — not EU, UN or UK/OFSI — and a non-match is not evidence the counterparty is legitimate. Not a regulated AML/KYT service and does not discharge any legal screening obligation.",
   "GET /v1/token/verdict/*":
     "Safety verdict for an ERC-20 on Base: ownership and mint authority, proxy upgradeability, liquidity and holder concentration, transfer-restriction patterns. Returns hold/caution/avoid with a score and the signals behind it. Heuristic static analysis, not a security audit — a proxy contract can change its implementation after this check.",
   "GET /v1/wallet/dossier/*":
@@ -259,7 +244,7 @@ app.get("/", (req, res) => {
   res.json({
   service: "ChainVerdict",
   homepage: "https://chainverdict.xyz",
-  description: "Evidence-backed checks an autonomous agent can run before it moves money or trusts a counterparty: sanctions screening, payee risk, token safety, payment verification, financial-identifier validation and web-security posture. Every answer states what was checked, when, how the answer was produced and what it does not mean.",
+  description: "Evidence-backed checks an autonomous agent can run before it moves money or trusts a counterparty: payee risk, token safety, payment verification, financial-identifier validation and web-security posture. Every answer states what was checked, when, how the answer was produced and what it does not mean.",
   payment: { protocol: "x402", network: NETWORK, currency: "USDC" },
   // POST /mcp is filtered out of the resource lists in x402.json (line ~312) and
   // openapi.json because it is a transport, not a resource: tools/list is free
@@ -323,7 +308,7 @@ app.get("/.well-known/portfolio.json", (_req, res) =>
 app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 `# ChainVerdict
 > Evidence-backed checks an autonomous agent runs BEFORE it moves money or trusts a counterparty.
-> Screen a payee for sanctions, profile a recipient address, verify a token is canonical, confirm a payment settled,
+> Profile a recipient address, verify a token is canonical, confirm a payment settled,
 > validate an IBAN/VAT/BIC/LEI/ISIN, or check a domain's email/TLS posture — in one call, with no account.
 >
 > Every paid response carries a machine-readable _evidence object: checksPerformed, dataSources, freshness
@@ -350,9 +335,7 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 - GET https://chainverdict.xyz/v1/security/email/{domain} — SPF/DMARC/DKIM email-spoofing posture, ${PRICE("GET /v1/security/email/*")}
 - GET https://chainverdict.xyz/v1/security/tls/{domain} — live TLS certificate validity/expiry check, ${PRICE("GET /v1/security/tls/*")}
 - GET https://chainverdict.xyz/v1/security/typosquat/{domain} — brand look-alike/homoglyph structural check, ${PRICE("GET /v1/security/typosquat/*")}
-- GET https://chainverdict.xyz/v1/preflight/{address} — one-call pre-payment trust check (sanctions + wallet profile + verdict), ${PRICE("GET /v1/preflight/*")}
 - POST https://chainverdict.xyz/v1/batch/validate — batch-validate up to 500 IBAN/VAT/BIC/LEI/ISIN items, ${PRICE("POST /v1/batch/validate")}
-- GET https://chainverdict.xyz/v1/screen/address/{address} — OFAC SDN sanctions screening (daily-refreshed), ${PRICE("GET /v1/screen/address/*")}
 - GET https://chainverdict.xyz/v1/verify/payment/{txhash} — on-chain ERC-20 settlement verification on Base, ${PRICE("GET /v1/verify/payment/*")}
 - GET https://chainverdict.xyz/v1/verify/token/{addressOrSymbol} — canonical token verification on Base, ${PRICE("GET /v1/verify/token/*")}
 - GET https://chainverdict.xyz/v1/validate/lei/{lei} — ISO 17442 LEI validation, ${PRICE("GET /v1/validate/lei/*")}
@@ -402,7 +385,6 @@ app.get("/v1/validate/vat/:vat", (req, res) => res.json(enrich("vat", validateVA
 app.get("/v1/validate/bic/:bic", (req, res) => res.json(enrich("bic", validateBIC(req.params.bic))));
 
 // ---- Paid: institutional trust & compliance suite ----
-app.get("/v1/screen/address/:addr", (req, res) => res.json(enrich("screen/address", screenAddress(req.params.addr))));
 app.get("/v1/verify/payment/:tx", async (req, res) => {
   try { res.json(enrich("verify/payment", await verifyPayment(req.params.tx))); }
   catch (e) { res.status(502).json({ error: "chain_read_failed", detail: String(e.message || e) }); }
@@ -411,30 +393,6 @@ app.get("/v1/verify/token/:q", (req, res) => res.json(enrich("verify/token", ver
 app.get("/v1/validate/lei/:lei", (req, res) => res.json(enrich("lei", validateLEI(req.params.lei))));
 app.get("/v1/validate/isin/:isin", (req, res) => res.json(enrich("isin", validateISIN(req.params.isin))));
 
-// ---- Paid: one-call pre-payment trust check ----
-app.get("/v1/preflight/:addr", async (req, res) => {
-  try {
-    const [screen, dossier] = await Promise.all([
-      Promise.resolve(screenAddress(req.params.addr)),
-      walletDossier(req.params.addr).catch(e => ({ error: "dossier_failed", detail: String(e.message || e) }))
-    ]);
-    let verdict = "clear_to_pay";
-    const reasons = [];
-    if (screen.error) { verdict = "caution"; reasons.push("invalid_address"); }
-    else if (screen.status === "unavailable") { verdict = "caution"; reasons.push("sanctions_list_unavailable"); }
-    else if (screen.sanctioned_match) { verdict = "do_not_pay"; reasons.push("ofac_sdn_match"); }
-    if (!screen.error && dossier && !dossier.error) {
-      if (dossier.flags?.includes("unused_address")) { if (verdict === "clear_to_pay") verdict = "caution"; reasons.push("payee_address_never_used"); }
-    } else if (dossier?.error) reasons.push("dossier_unavailable");
-    res.json({
-      address: screen.address || req.params.addr,
-      verdict, reasons,
-      sanctions: screen, wallet: dossier,
-      disclaimer: "Automated pre-flight signal from public data. Not a complete compliance program; final responsibility rests with the payer.",
-      checked_at: new Date().toISOString()
-    });
-  } catch (e) { res.status(502).json({ error: "preflight_failed", detail: String(e.message || e) }); }
-});
 
 // ---- Paid: batch validation (up to 500 items) ----
 app.post("/v1/batch/validate", (req, res) => {
@@ -504,12 +462,10 @@ function openapiSpec() {
     "/v1/validate/iban/{iban}": P("iban", "IBAN incl. country prefix", "DE89370400440532013000"),
     "/v1/validate/vat/{vat}": P("vat", "EU VAT number incl. country prefix", "DE123456789"),
     "/v1/validate/bic/{bic}": P("bic", "BIC/SWIFT, 8 or 11 chars", "DEUTDEFF"),
-    "/v1/screen/address/{addr}": P("addr", "EVM address to screen against OFAC SDN", "0xAe2634E709c454f2720C65A0b2F9ba168e431842"),
     "/v1/verify/payment/{tx}": P("tx", "Base transaction hash (0x, 66 chars)", "0x94efa7ccb96a6e906f5a8bb511b63c44cbaf98239d368ac2d428a8c176578082"),
     "/v1/verify/token/{q}": P("q", "Token address or symbol", "USDC"),
     "/v1/validate/lei/{lei}": P("lei", "20-char LEI (ISO 17442)", "5299000J2N45DDNE4Y28"),
     "/v1/validate/isin/{isin}": P("isin", "12-char ISIN (ISO 6166)", "US0378331005"),
-    "/v1/preflight/{addr}": P("addr", "Payee address on Base to check before paying", "0xAe2634E709c454f2720C65A0b2F9ba168e431842"),
     "/v1/security/email/{domain}": P("domain", "Domain to check SPF/DMARC/DKIM", "example.com"),
     "/v1/security/tls/{domain}": P("domain", "Hostname to probe over TLS", "example.com"),
     "/v1/security/typosquat/{domain}": P("domain", "Domain to analyse for brand look-alikes", "c0inbase.com"),
@@ -532,10 +488,9 @@ function openapiSpec() {
       const RENAME = {
         "/v1/token/verdict/*": "/v1/token/verdict/{address}", "/v1/wallet/dossier/*": "/v1/wallet/dossier/{address}",
         "/v1/validate/iban/*": "/v1/validate/iban/{iban}", "/v1/validate/vat/*": "/v1/validate/vat/{vat}",
-        "/v1/validate/bic/*": "/v1/validate/bic/{bic}", "/v1/screen/address/*": "/v1/screen/address/{addr}",
+        "/v1/validate/bic/*": "/v1/validate/bic/{bic}",
         "/v1/verify/payment/*": "/v1/verify/payment/{tx}", "/v1/verify/token/*": "/v1/verify/token/{q}",
-        "/v1/validate/lei/*": "/v1/validate/lei/{lei}", "/v1/validate/isin/*": "/v1/validate/isin/{isin}",
-        "/v1/preflight/*": "/v1/preflight/{addr}", "/v1/security/email/*": "/v1/security/email/{domain}",
+        "/v1/validate/lei/*": "/v1/validate/lei/{lei}", "/v1/validate/isin/*": "/v1/validate/isin/{isin}", "/v1/security/email/*": "/v1/security/email/{domain}",
         "/v1/security/tls/*": "/v1/security/tls/{domain}", "/v1/security/typosquat/*": "/v1/security/typosquat/{domain}",
         "/v1/data/supply/*": "/v1/data/supply/{token}", "/v1/data/activity/*": "/v1/data/activity/{token}",
         "/v1/data/portfolio/*": "/v1/data/portfolio/{address}",
@@ -555,7 +510,6 @@ function openapiSpec() {
 app.get("/favicon.ico", (_req, res) => res.sendFile(join(__dir, "favicon.ico")));
 
 const PORT = process.env.PORT || 3000;
-startSanctionsRefresher();
 // Exported so tests can boot the real app and read the real served surfaces.
 // Every defect in the 24-25 August audit returned HTTP 200, so asserting the
 // response body is the only assertion worth making.

@@ -74,12 +74,6 @@ const enrichers = {
         : r.activity_band === "high" ? "High activity — possibly an exchange, bridge, or bot."
         : "Standard externally-owned account." };
   },
-  "screen/address"(r) {
-    if (r.sanctioned_match === undefined) return null;
-    return { action_recommendation: r.sanctioned_match ? "DO NOT transact — address matches OFAC SDN list." : "No OFAC SDN match found — proceed per your own compliance policy.",
-      audit_fields: { list_source: r.list, list_size: r.list_size, list_loaded_at: r.list_loaded_at, screened_at: new Date().toISOString() },
-      compliance_note: "Screens the public OFAC SDN crypto-address list only. Not a full sanctions/AML program; no fuzzy entity match." };
-  },
   "verify/payment"(r) {
     if (!r.found) return null;
     const canon = (r.erc20_transfers || []).filter(t => t.canonical_token);
