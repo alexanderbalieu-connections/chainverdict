@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ChainVerdict — evidence-backed checks for AI agents before they move money</title>
-<meta name="description" content="Checks an autonomous agent runs before it pays a counterparty or trusts a token: sanctions screening, payee risk, token safety, payment verification, identifier validation. Every answer states what was checked, when, how the answer was produced and what it does not mean. Signed, per-call, no accounts.">
+<meta name="description" content="Checks an autonomous agent runs before it pays a counterparty or trusts a token: token safety, wallet profiling, payment verification, identifier validation. Every answer states what was checked, when, how the answer was produced and what it does not mean. Signed, per-call, no accounts.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -82,7 +82,7 @@ pre .k{color:#7FB4EC}
 <div class="hero">
   <div>
     <h1>Your agent asks.<br>Pays <em>$0.001</em>.<br>Gets a verdict.</h1>
-    <p class="lede">Checks an autonomous agent runs <strong>before</strong> it moves money or trusts a counterparty — sanctions screening, payee risk, token safety, settlement verification, identifier validation. Every answer arrives with its evidence: what was checked, when, how the answer was produced, and what it does <em style="font-style:italic;color:inherit">not</em> mean. Billing is per call in USDC — no keys, no accounts, no humans in the loop.</p>
+    <p class="lede">Checks an autonomous agent runs <strong>before</strong> it moves money or trusts a counterparty — token safety, wallet profiling, settlement verification, identifier validation. Every answer arrives with its evidence: what was checked, when, how the answer was produced, and what it does <em style="font-style:italic;color:inherit">not</em> mean. Billing is per call in USDC — no keys, no accounts, no humans in the loop.</p>
     <div class="chips">
       <span>evidence on every answer</span><span>no fake precision</span><span>Ed25519-signed</span><span>public methodology</span><span>USDC · Base · x402</span><span>no signup</span><span><a href="https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block" style="text-decoration:none">A-grade · attested daily ↗</a></span>
     </div>
@@ -114,7 +114,6 @@ pre .k{color:#7FB4EC}
     <tr><td class="route">GET /v1/security/email/{domain}</td><td>Email-spoofing posture: live SPF / DMARC / DKIM record check. Is this counterparty's domain protected against impersonation?</td><td class="price">$0.01</td></tr>
     <tr><td class="route">GET /v1/security/tls/{domain}</td><td>Live TLS certificate check — validity, issuer, expiry countdown. Catch expired or misissued certs before trusting an endpoint.</td><td class="price">$0.01</td></tr>
     <tr><td class="route">GET /v1/security/typosquat/{domain}</td><td>Brand look-alike / homoglyph structural analysis — flags c0inbase, b1nance, metamask-support and similar phishing patterns.</td><td class="price">$0.005</td></tr>
-    <tr><td class="route">GET /v1/screen/address/{addr}</td><td>OFAC SDN sanctions screening against the live digital-currency list (auto-refreshed daily). Pre-flight check before your agent pays anyone.</td><td class="price">$0.05</td></tr>
     <tr><td class="route">GET /v1/verify/payment/{txhash}</td><td>On-chain settlement verification on Base — decoded ERC-20 transfers, amounts, counterparties, confirmations.</td><td class="price">$0.02</td></tr>
     <tr><td class="route">GET /v1/verify/token/{addr|symbol}</td><td>Canonical token check on Base (USDC, EURC, WETH, cbBTC, USDT) — anti-phishing for stablecoin payments.</td><td class="price">$0.005</td></tr>
     <tr><td class="route">GET /v1/validate/lei/{lei}</td><td>ISO 17442 LEI checksum validation — entity identifiers used in EMIR/MiFID reporting.</td><td class="price">$0.002</td></tr>
@@ -123,34 +122,33 @@ pre .k{color:#7FB4EC}
     <tr><td class="route">GET /v1/validate/vat/{vat}</td><td>EU VAT format for 27 registries + deterministic checksums (DE, IT, LU, PL, SI).</td><td class="price">$0.001</td></tr>
     <tr><td class="route">GET /v1/validate/bic/{bic}</td><td>BIC/SWIFT structure check, decomposed bank / country / location / branch.</td><td class="price">$0.001</td></tr>
     <tr><td class="route">POST /v1/doc/html-to-markdown</td><td>Clean Markdown from raw HTML.</td><td class="price">$0.002</td></tr>
+    <tr><td class="route">POST /v1/batch/validate</td><td>Validate up to 500 IBAN/VAT/BIC/LEI/ISIN identifiers in one call. One payment instead of 500, for reconciliation and onboarding runs.</td><td class="price">$0.10</td></tr>
     <tr><td class="route">POST /v1/doc/diff</td><td>Structured diff — lines, words, or chars — with change hunks.</td><td class="price">$0.002</td></tr>
   </table>
 </section>
 
 <section id="evidence">
   <h2>Every answer carries its evidence</h2>
-  <p class="sub">A verdict that sounds certain is dangerous without its limits attached, and a stale "clean" sanctions result is worse than no result at all. So the evidence is part of the response — inside the signature, so it can't be stripped or edited in transit.</p>
+  <p class="sub">A verdict that sounds certain is dangerous without its limits attached, and a stale "clean" result is worse than no result at all. So the evidence is part of the response — inside the signature, so it can't be stripped or edited in transit.</p>
 <pre>{
-  "verdict": "clear_to_pay",
+  "verdict": "caution",
   <span class="k">"_evidence"</span>: {
-    "checksPerformed": ["OFAC SDN digital-currency list match",
-                        "On-chain address profile", "Composite heuristic verdict"],
-    "dataSources":     [{ "name": "US Treasury OFAC SDN list", "refresh": "daily" },
-                        { "name": "Base mainnet RPC", "refresh": "per-request" }],
-    "freshness":       { "basis": "daily-refresh+live-chain", "maxUsefulAgeSeconds": 60,
-                         "staleDataRisk": "A designation made since the last refresh
-                                           will not appear here." },
-    "assurance":       { "level": "heuristic", "basis": "composite of one exact list
-                                            match and heuristic address signals" },
+    "checksPerformed": ["Ownership and mint authority", "Proxy upgradeability",
+                        "Holder concentration", "Transfer-restriction patterns"],
+    "dataSources":     [{ "name": "Base mainnet RPC", "refresh": "per-request" }],
+    "freshness":       { "basis": "live-chain", "maxUsefulAgeSeconds": 60,
+                         "staleDataRisk": "A proxy can change its implementation
+                                           after this check was performed." },
+    "assurance":       { "level": "heuristic", "basis": "static analysis of contract
+                                            state and holder distribution" },
     "semantics":       { "assuranceIsNotAProbability": "...NOT a calibrated probability...",
                          "signatureProvesIntegrityNotTruth": "...integrity is not truth..." },
-    "humanApprovalRecommended": "unless_clear_to_pay",
+    "humanApprovalRecommended": "unless_verdict_is_hold",
     <span class="k">"limitations"</span>: [
-      "'clear_to_pay' means no configured negative signal was found. It is NOT an
-       endorsement, a guarantee of counterparty legitimacy, or a recommendation
-       to transact.",
-      "Sanctions coverage is the US OFAC SDN digital-currency list only; other
-       regimes are not screened.",
+      "'caution' means a configured signal fired. It is NOT a finding of fraud,
+       and 'hold' is NOT an endorsement or a recommendation to transact.",
+      "Heuristic static analysis, not a security audit. A proxy contract can
+       change its implementation after this check.",
       "Informational risk signal only; not regulated financial, legal or
        compliance advice."
     ]
@@ -178,7 +176,7 @@ console.log(<span class="k">await</span> res.json()); <span class="k">// → ver
     <tr><th>Service</th><th>What it answers</th><th>From</th></tr>
     <tr>
       <td><strong>ChainVerdict</strong><br><span class="mono" style="font-size:12px;opacity:.6">chainverdict.xyz</span></td>
-      <td>Checks before money moves: sanctions screening, payee preflight, token safety, settlement verification, identifier and domain posture.</td>
+      <td>Checks before money moves: token safety, wallet profiling, settlement verification, identifier and domain posture.</td>
       <td class="v">$0.001</td>
     </tr>
     <tr>
