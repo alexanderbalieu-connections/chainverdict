@@ -9,7 +9,6 @@ import * as Diff from "diff";
 import { validateIBAN, validateVAT, validateBIC } from "./lib/validators.js";
 import { tokenVerdict, walletDossier } from "./lib/chain.js";
 import { validateLEI, validateISIN, verifyToken, verifyPayment } from "./lib/institutional.js";
-import { screenAddress } from "./lib/sanctions.js";
 import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
 import { gasOracle, tokenSupply, tokenActivity, blockInfo, portfolio } from "./lib/onchain-data.js";
 import { enrich } from "./lib/enrich.js";
@@ -19,7 +18,7 @@ const asText = (obj) => ({ content: [{ type: "text", text: JSON.stringify(obj, n
 
 // All ChainVerdict tools are read-only and idempotent: they compute verdicts or
 // validations and never mutate state. openWorldHint marks tools that consult
-// live external systems (Base RPC, DNS, TLS, sanctions list) vs pure local math.
+// live external systems (Base RPC, DNS, TLS) vs pure local math.
 const RO = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const RO_LIVE = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
@@ -30,8 +29,7 @@ const PRICE_ROUTE = {
   token_verdict: "GET /v1/token/verdict/*", wallet_dossier: "GET /v1/wallet/dossier/*",
   validate_iban: "GET /v1/validate/iban/*", validate_vat: "GET /v1/validate/vat/*",
   validate_bic: "GET /v1/validate/bic/*", html_to_markdown: "POST /v1/doc/html-to-markdown",
-  text_diff: "POST /v1/doc/diff", screen_address_ofac: "GET /v1/screen/address/*",
-  preflight_payee: "GET /v1/preflight/*", verify_payment: "GET /v1/verify/payment/*",
+  text_diff: "POST /v1/doc/diff", verify_payment: "GET /v1/verify/payment/*",
   verify_token: "GET /v1/verify/token/*", validate_lei: "GET /v1/validate/lei/*",
   validate_isin: "GET /v1/validate/isin/*", security_email: "GET /v1/security/email/*",
   security_tls: "GET /v1/security/tls/*", security_typosquat: "GET /v1/security/typosquat/*",
@@ -100,27 +98,6 @@ function buildServer(prices = {}) {
   });
 
   // ---- institutional & compliance ----
-  server.registerTool("screen_address_ofac", {
-    title: "OFAC sanctions screening",
-    description: "Screen a crypto address against the OFAC SDN digital-currency list (daily-refreshed). Pre-flight check before paying anyone.",
-    inputSchema: { address: z.string().describe("Crypto address to screen against the OFAC SDN list (0x-prefixed EVM address)") },
-    annotations: RO_LIVE
-  }, async ({ address }) => asText(enrich("screen/address", screenAddress(address))));
-  server.registerTool("preflight_payee", {
-    title: "Pre-payment trust check",
-    description: "One-call payee safety: OFAC screening + wallet profile + clear_to_pay/caution/do_not_pay verdict.",
-    inputSchema: { address: z.string().describe("Payee address on Base to check before sending funds (0x-prefixed, 42 chars)") },
-    annotations: RO_LIVE
-  }, async ({ address }) => {
-    const screen = screenAddress(address);
-    const dossier = await walletDossier(address).catch(e => ({ error: String(e.message || e) }));
-    let verdict = "clear_to_pay"; const reasons = [];
-    if (screen.error) { verdict = "caution"; reasons.push("invalid_address"); }
-    else if (screen.sanctioned_match) { verdict = "do_not_pay"; reasons.push("ofac_sdn_match"); }
-    else if (screen.status === "unavailable") { verdict = "caution"; reasons.push("sanctions_list_unavailable"); }
-    if (dossier?.flags?.includes("unused_address") && verdict === "clear_to_pay") { verdict = "caution"; reasons.push("payee_address_never_used"); }
-    return asText({ address: screen.address || address, verdict, reasons, sanctions: screen, wallet: dossier });
-  });
   server.registerTool("verify_payment", {
     title: "Verify on-chain payment (Base)",
     description: "Decode ERC-20 transfers in a Base transaction: amounts, counterparties, confirmations.",
