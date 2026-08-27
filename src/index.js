@@ -56,7 +56,18 @@ const PUBLIC_DOCS = new Set([
   "/.well-known/x402.json", "/v1/methodology",
 ]);
 app.use((req, res, next) => {
-  if (req.method === "GET" && PUBLIC_DOCS.has(req.path)) res.set("access-control-allow-origin", "*");
+  if (!PUBLIC_DOCS.has(req.path)) return next();
+  res.set("access-control-allow-origin", "*");
+  // A GET carrying any header outside the CORS safelist — cache-control, for one —
+  // is not a simple request: the browser sends an OPTIONS preflight first and
+  // refuses to make the real call unless that preflight answers with these. The
+  // allow-origin header above was correct and unreachable, because nothing here
+  // answered the preflight. Measured, not guessed: OPTIONS returned 200 with no
+  // CORS headers at all while GET returned them fine.
+  res.set("access-control-allow-headers", "*");
+  res.set("access-control-allow-methods", "GET, HEAD, OPTIONS");
+  res.set("access-control-max-age", "86400");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 

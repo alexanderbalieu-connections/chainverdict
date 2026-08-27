@@ -66,6 +66,21 @@ test('the public documents are readable by a browser', async () => {
   } finally { srv.close(); }
 });
 
+test('a preflight is answered, or the browser never sends the real request', async () => {
+  const { srv, base } = await boot();
+  try {
+    const res = await fetch(base + '/.well-known/x402.json', { method: 'OPTIONS', headers: {
+      origin: 'https://pulse.chainverdict.xyz',
+      'access-control-request-method': 'GET',
+      'access-control-request-headers': 'cache-control',
+    } });
+    assert.ok(res.status === 204 || res.status === 200, 'the preflight must be answered');
+    assert.equal(res.headers.get('access-control-allow-origin'), '*');
+    assert.ok(res.headers.get('access-control-allow-headers'),
+      'without allow-headers the browser rejects the preflight and the GET never happens');
+  } finally { srv.close(); }
+});
+
 test('a crawler policy and a sitemap exist', async () => {
   const { srv, base } = await boot();
   try {
