@@ -3,10 +3,6 @@
   "name": "xyz.chainverdict/chainverdict",
   "description": "Pay-per-call x402 checks before an agent moves money: token safety, wallet risk, identifiers.",
   "version": "2.2.0",
-  "repository": {
-    "url": "https://github.com/alexanderbalieu-connections/chainverdict",
-    "source": "github"
-  },
   "remotes": [
     {
       "type": "streamable-http",
