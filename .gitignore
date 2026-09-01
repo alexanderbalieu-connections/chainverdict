@@ -1,2 +1,4 @@
 key.pem
 *.pem
+mcp-publisher
+mcp-publisher.tar.gz

@@ -59,3 +59,19 @@ test('payment_info is free and everything else is paid', () => {
   assert.equal(isPaidMcpCall({ method: 'tools/list' }), false);
   assert.equal(isPaidMcpCall({ method: 'initialize' }), false);
 });
+
+// The official MCP registry rejects a publish with HTTP 422 if the description
+// exceeds 100 characters. Found the hard way on 1 September 2026: the first
+// submission carried a 617-character description and was refused after the DNS
+// authentication had already succeeded, which makes the failure look like an
+// auth problem rather than a field-length one.
+test('server.json is publishable to the official MCP registry', async () => {
+  const { readFileSync } = await import('node:fs');
+  const manifest = JSON.parse(readFileSync(new URL('../server.json', import.meta.url), 'utf8'));
+  assert.ok(manifest.description.length <= 100, `description is ${manifest.description.length} chars, limit is 100`);
+  assert.match(manifest.name, /^[a-z0-9.-]+\/[a-z0-9-]+$/, 'name must be reverse-DNS namespace/server');
+  assert.equal(manifest.remotes[0].type, 'streamable-http');
+  assert.equal(manifest.remotes[0].url, 'https://chainverdict.xyz/mcp');
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(manifest.version, pkg.version, 'server.json version must track package.json');
+});
