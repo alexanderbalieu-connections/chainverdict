@@ -8,5 +8,9 @@
       "type": "streamable-http",
       "url": "https://chainverdict.xyz/mcp"
     }
-  ]
+  ],
+  "repository": {
+    "url": "https://github.com/alexanderbalieu-connections/chainverdict",
+    "source": "github"
+  }
 }
