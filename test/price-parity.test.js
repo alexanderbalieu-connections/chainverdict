@@ -77,3 +77,33 @@ test('the portfolio section lists every route the other two services sell', () =
   const missing = [...traderails, ...pulse].filter((p) => !html.includes(p));
   assert.deepEqual(missing, [], 'the main site must list the whole portfolio, not just its own routes');
 });
+
+// The README is now the public front door of a public repository, and it was
+// four months stale: seven routes of twenty, token/verdict priced at $0.02
+// against a real $0.01, "16 validator tests" against 34. Nobody noticed because
+// no test had ever read it. Same defect as the landing page, different file.
+test('every price in the README equals the served price', async () => {
+  const { readFileSync } = await import('node:fs');
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+  const root = await rootEndpoints();
+  const mismatches = [];
+  for (const { route, price } of root.endpoints) {
+    const re = new RegExp('\\|\\s*`' + route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '`\\s*\\|\\s*([^|\\s]+)\\s*\\|');
+    const m = readme.match(re);
+    if (!m) { mismatches.push(`${route}: not in the README rate card`); continue; }
+    if (m[1] !== price) mismatches.push(`${route}: README says ${m[1]}, server quotes ${price}`);
+  }
+  assert.deepEqual(mismatches, [], 'README prices disagree with served prices');
+});
+
+// Glama rejected the first submission because the README described "a set of
+// paid RESTful APIs using x402, not an MCP server" -- true of the text, false of
+// the software, which has served MCP over Streamable HTTP since August. A
+// directory can only read what the README says.
+test('the README says this is an MCP server', async () => {
+  const { readFileSync } = await import('node:fs');
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+  for (const term of ['MCP', 'Model Context Protocol', 'tools', 'Streamable HTTP', '/mcp']) {
+    assert.ok(readme.includes(term), `README must mention ${term}`);
+  }
+});
