@@ -25,7 +25,7 @@ const RO_LIVE = { readOnlyHint: true, destructiveHint: false, idempotentHint: tr
 // Route key -> MCP tool. Descriptions interpolate the live price from PRICES so
 // tools/list can never advertise a rate the payment middleware does not charge.
 // Two already had drifted: $0.05 for a $0.001 route, $0.06 for a $0.01 route.
-const PRICE_ROUTE = {
+export const PRICE_ROUTE = {
   token_verdict: "GET /v1/token/verdict/*", wallet_dossier: "GET /v1/wallet/dossier/*",
   validate_iban: "GET /v1/validate/iban/*", validate_vat: "GET /v1/validate/vat/*",
   validate_bic: "GET /v1/validate/bic/*", html_to_markdown: "POST /v1/doc/html-to-markdown",
@@ -46,6 +46,32 @@ function buildServer(prices = {}) {
     if (p && cfg?.description) cfg = { ...cfg, description: `${cfg.description} ${p} per call.` };
     return reg(name, cfg, handler);
   };
+  server.registerTool("payment_info", {
+    title: "How to pay for these tools (free)",
+    description: "Free. Explains how to call the paid tools on this server: the x402 protocol, the network and asset, the settlement address, and the price of every tool.",
+    inputSchema: {},
+    annotations: RO
+  }, async () => asText({
+    protocol: "x402",
+    howItWorks: "Call any tool. The server answers HTTP 402 with a payment quote in the payment-required header. Your client signs a USDC transfer authorization, retries with an X-PAYMENT header, and gets the answer. No account, no API key, no signup, and no gas: the facilitator submits the transaction.",
+    network: "Base mainnet (eip155:8453)",
+    asset: "USDC",
+    settlesTo: process.env.PAY_TO_ADDRESS || "see https://chainverdict.xyz/.well-known/x402.json",
+    clients: [
+      "x402-fetch (JavaScript) - wrapFetchWithPayment(fetch, account)",
+      "Any MCP client that speaks x402; a client without wallet support will see a 402 and cannot complete the call.",
+    ],
+    prices: Object.fromEntries(
+      Object.entries(PRICE_ROUTE).map(([tool, route]) => [tool, prices[route] || "see /"])
+    ),
+    freeToRead: {
+      methodology: "https://chainverdict.xyz/v1/methodology",
+      discovery: "https://chainverdict.xyz/.well-known/x402.json",
+      portfolio: "https://pulse.chainverdict.xyz/.well-known/portfolio.json",
+      verifyASignedResponse: "https://pulse.chainverdict.xyz/verify",
+    },
+    limitations: "Every answer here is an informational signal. None of it is a compliance control, none of it discharges a legal obligation, and a valid signature proves integrity, not truth.",
+  }));
   server.registerTool("token_verdict", {
     title: "Token safety verdict (Base)",
     description: "Heuristic ERC-20 safety verdict on Base: bytecode risk capabilities, ownership, metadata, 0-100 score, hold/caution/avoid.",
@@ -202,4 +228,19 @@ export async function handleMcpRequest(req, res, prices) {
   }
 }
 
-export const isPaidMcpCall = (body) => body?.method === "tools/call";
+// One tool answers without payment.
+//
+// Everything here is x402-gated, which is correct for an agent with a funded
+// wallet and useless for the person who found this server in an MCP registry
+// and added it to a desktop client: they see twenty tools, call one, and get a
+// bare 402 that their client renders as a failure. They never learn that the
+// server works, what it costs, or what x402 is. A registry listing whose every
+// tool fails on first use is worse than no listing.
+//
+// payment_info is free, deterministic, and generated from the same PRICES map
+// the payment middleware charges from, so it cannot quote a rate that is not
+// the rate.
+export const FREE_TOOLS = new Set(["payment_info"]);
+
+export const isPaidMcpCall = (body) =>
+  body?.method === "tools/call" && !FREE_TOOLS.has(body?.params?.name);

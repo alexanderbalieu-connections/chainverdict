@@ -90,7 +90,7 @@ pre .k{color:#7FB4EC}
   <div class="wire" aria-label="Example x402 exchange">
     <div class="lbl">ONE PURCHASE, ON THE WIRE</div>
     <div class="c-req">→ GET /v1/token/verdict/0x4200…0006</div>
-    <div class="c-402">← 402 Payment Required · $0.02 USDC</div>
+    <div class="c-402">← 402 Payment Required · $0.01 USDC</div>
     <div class="c-pay">→ retry + X-PAYMENT (signed, no gas)</div>
     <div class="c-200">← 200 OK · score 84 · "hold"</div>
     <div class="c-req" style="font-size:12.5px;line-height:1.6">&nbsp;&nbsp;&nbsp;_evidence: checks[4] · live-chain @block · conf 0.6<br>&nbsp;&nbsp;&nbsp;limitations: "heuristic, NOT a security audit"</div>
@@ -104,7 +104,7 @@ pre .k{color:#7FB4EC}
   <p class="sub">Every endpoint answers unpaid requests with a 402 quote. Agents pay per call and get JSON back. Verdicts come stamped <span class="v h">HOLD</span> <span class="v c">CAUTION</span> <span class="v a">AVOID</span> — each one carrying an <code style="font:500 13px var(--mono)">_evidence</code> object with the checks performed, data sources, freshness, confidence and limitations. Read the <a href="/v1/methodology">full methodology</a> before you pay for anything.</p>
   <table>
     <tr><th>ENDPOINT</th><th>WHAT YOU GET</th><th>PRICE</th></tr>
-    <tr><td class="route">GET /v1/token/verdict/{addr}</td><td>Token safety verdict on Base — bytecode risk capabilities (mint, pause, blacklist, proxy), ownership status, ERC-20 metadata, 0–100 score.</td><td class="price">$0.02</td></tr>
+    <tr><td class="route">GET /v1/token/verdict/{addr}</td><td>Token safety verdict on Base — bytecode risk capabilities (mint, pause, blacklist, proxy), ownership status, ERC-20 metadata, 0–100 score.</td><td class="price">$0.01</td></tr>
     <tr><td class="route">GET /v1/wallet/dossier/{addr}</td><td>Wallet profile — EOA/contract, balance, activity band, behavioural flags, as-of block.</td><td class="price">$0.01</td></tr>
     <tr><td class="route">GET /v1/data/gas</td><td>Live Base gas oracle — base fee, priority fees, congestion level, estimated transfer cost. What agents check before transacting.</td><td class="price">$0.002</td></tr>
     <tr><td class="route">GET /v1/data/activity/{token}</td><td>Recent transfer count, volume, and unique wallet activity for a token on Base — a real on-chain liquidity/interest signal.</td><td class="price">$0.005</td></tr>
@@ -190,6 +190,33 @@ console.log(<span class="k">await</span> res.json()); <span class="k">// → ver
       <td class="v">$0.03</td>
     </tr>
   </table>
+
+  <h3 style="margin-top:38px;font:600 17px 'Space Grotesk'">TradeRails &mdash; every endpoint <span class="mono" style="font-size:12px;opacity:.55">trade.chainverdict.xyz</span></h3>
+  <table>
+    <tr><th>ENDPOINT</th><th>WHAT YOU GET</th><th>PRICE</th></tr>
+    <tr><td class="route">GET /v1/gtin/validate?code=</td><td>GTIN-8/12/13/14 structure and check digit, with the normalised GTIN-14.</td><td class="price">$0.004</td></tr>
+    <tr><td class="route">GET /v1/gtin/checkdigit?body=</td><td>Computes the missing GS1 mod-10 check digit for a partial code.</td><td class="price">$0.004</td></tr>
+    <tr><td class="route">GET /v1/gtin/prefix?code=</td><td>GS1 prefix lookup &mdash; issuing member organisation for a barcode.</td><td class="price">$0.004</td></tr>
+    <tr><td class="route">GET /v1/sscc/validate?code=</td><td>SSCC-18 logistics unit serial code validation.</td><td class="price">$0.004</td></tr>
+    <tr><td class="route">GET /v1/container/validate?code=</td><td>ISO 6346 shipping container number, owner code and check digit.</td><td class="price">$0.004</td></tr>
+    <tr><td class="route">GET /v1/imo/validate?code=</td><td>IMO vessel number checksum (ISO/IMO seven-digit scheme).</td><td class="price">$0.004</td></tr>
+    <tr><td class="route">GET /v1/gs1/decode?data=</td><td>Parses a GS1 element string into its Application Identifiers.</td><td class="price">$0.006</td></tr>
+    <tr><td class="route">POST /v1/gs1/decode</td><td>Same decoder for payloads too long for a query string.</td><td class="price">$0.006</td></tr>
+    <tr><td class="route">GET /v1/hs/classify?q=</td><td>HS-code triage from a goods description &mdash; candidate headings with the reasoning, as a starting point for a customs broker, not a classification ruling.</td><td class="price">$0.05</td></tr>
+  </table>
+
+  <h3 style="margin-top:38px;font:600 17px 'Space Grotesk'">x402pulse &mdash; every endpoint <span class="mono" style="font-size:12px;opacity:.55">pulse.chainverdict.xyz</span></h3>
+  <table>
+    <tr><th>ENDPOINT</th><th>WHAT YOU GET</th><th>PRICE</th></tr>
+    <tr><td class="route">GET /v1/verdict?url=</td><td>Measured quality verdict on a third-party x402 endpoint &mdash; uptime, latency, 402 correctness, price stability, from the observation record.</td><td class="price">$0.03</td></tr>
+    <tr><td class="route">GET /v1/rankings</td><td>Cross-endpoint ranking of every observed x402 service by measured quality.</td><td class="price">$0.07</td></tr>
+    <tr><td class="route">GET /v1/attest?url=</td><td>Ed25519-signed attestation of an endpoint&rsquo;s observed record, for a third party to cite.</td><td class="price">$0.12</td></tr>
+    <tr><td class="route">GET /v1/feed</td><td>The current observation feed &mdash; every endpoint, latest probe, in one call.</td><td class="price">$0.15</td></tr>
+    <tr><td class="route">GET /v1/archive/full</td><td>The complete anchored archive since 7 August 2026, with the daily Merkle roots and their OpenTimestamps proofs.</td><td class="price">$0.50</td></tr>
+    <tr><td class="route">GET /v1/status /v1/value /v1/feed/sample<br>/v1/methodology /v1/datasets/manifest /v1/archive/anchors</td><td>Free. Enough to check what is being observed, how, and whether the archive is what it claims &mdash; before paying for anything.</td><td class="price">free</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px"><strong>33 paid endpoints across the three services</strong> (34 counting <code style="font:500 13px var(--mono)">/v1/gs1/decode</code> twice, once per method). Every one of them is published in the Coinbase x402 Bazaar discovery catalogue, and every price on this page is the price the live 402 quote returns &mdash; a test fails the build if those two ever disagree.</p>
 
   <h2 style="margin-top:44px">The archive</h2>
   <p class="sub">x402pulse has been probing third-party endpoints every ten minutes since <strong>7 August 2026</strong>. Each day is reduced to a Merkle root, chained to the previous day, and timestamped into Bitcoin via OpenTimestamps.</p>

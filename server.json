@@ -1,0 +1,16 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "xyz.chainverdict/chainverdict",
+  "description": "Checks an autonomous agent runs before it moves money or trusts a counterparty: token safety verdicts and wallet risk profiles on Base, on-chain payment verification, IBAN/VAT/BIC/LEI/ISIN validation, and live TLS, email-authentication and typosquat posture for a domain. Paid per call in USDC on Base over x402 -- no API key, no account, no signup. Every answer carries an evidence record stating what was checked, how fresh it is and what it does not establish, and is Ed25519-signed. No LLM inference anywhere: every response is a deterministic computation or a live read of external state. The payment_info tool is free and explains how to pay for the rest.",
+  "version": "2.2.0",
+  "repository": {
+    "url": "https://github.com/alexanderbalieu-connections/chainverdict",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://chainverdict.xyz/mcp"
+    }
+  ]
+}

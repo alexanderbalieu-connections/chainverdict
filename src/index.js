@@ -139,9 +139,9 @@ const BAZAAR_ROUTES = {
 // `d` fields above, which describe the path PARAMETER, not the route.
 const ROUTE_DESCRIPTIONS = {
   "GET /v1/token/verdict/*":
-    "Safety verdict for an ERC-20 on Base: ownership and mint authority, proxy upgradeability, liquidity and holder concentration, transfer-restriction patterns. Returns hold/caution/avoid with a score and the signals behind it. Heuristic static analysis, not a security audit — a proxy contract can change its implementation after this check.",
+    "Token safety check for an ERC-20 on Base: is this token a scam, a honeypot, or safe to hold? Examines ownership and mint authority, proxy upgradeability, liquidity and holder concentration, transfer-restriction patterns. Returns hold/caution/avoid with a score and the signals behind it. Heuristic static analysis, not a security audit — a proxy contract can change its implementation after this check.",
   "GET /v1/wallet/dossier/*":
-    "Profile of a Base address before you transact with it: EOA or contract, first and last seen, transaction and counterparty counts, contract-verification status, and any flags raised. Behavioural signals only — they describe activity, not intent.",
+    "Wallet risk profile for a Base address before you pay it or accept payment from it: EOA or contract, first and last seen, transaction and counterparty counts, contract-verification status, and any flags raised. Behavioural signals only — they describe activity, not intent.",
   "GET /v1/verify/payment/*":
     "Verify a Base transaction actually did what a counterparty says it did: confirmation depth, success or revert, value, token, sender and recipient. Use it to confirm an inbound payment before releasing goods or data.",
   "GET /v1/verify/token/*":
@@ -175,7 +175,7 @@ const ROUTE_DESCRIPTIONS = {
   "GET /v1/data/supply/*":
     "Total and circulating supply for an ERC-20 on Base, read live from chain with decimals applied and the block height returned.",
   "GET /v1/data/gas":
-    "Current Base gas conditions: base fee and priority fee in gwei, at a stated block height. For agents deciding whether to transact now or wait.",
+    "Base gas price oracle: current gas cost on Base, base fee and priority fee in gwei, at a stated block height. For agents deciding whether to transact now or wait.",
   "GET /v1/data/block":
     "Latest Base block: number, timestamp and hash. The cheapest call on the service — useful as a liveness and connectivity check.",
 };
