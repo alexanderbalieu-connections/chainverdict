@@ -246,7 +246,7 @@ app.get("/", (req, res) => {
   res.json({
   service: "ChainVerdict",
   homepage: "https://chainverdict.xyz",
-  description: "Evidence-backed checks an autonomous agent can run before it moves money or trusts a counterparty: payee risk, token safety, payment verification, financial-identifier validation and web-security posture. Every answer states what was checked, when, how the answer was produced and what it does not mean.",
+  description: "Evidence-backed checks an autonomous agent can run before it moves money or trusts a counterparty: wallet risk, token safety, payment verification, financial-identifier validation and web-security posture. Every answer states what was checked, when, how the answer was produced and what it does not mean.",
   payment: { protocol: "x402", network: NETWORK, currency: "USDC" },
   // POST /mcp is filtered out of the resource lists in x402.json (line ~312) and
   // openapi.json because it is a transport, not a resource: tools/list is free
