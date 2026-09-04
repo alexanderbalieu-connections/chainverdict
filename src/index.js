@@ -11,6 +11,7 @@ import { tokenVerdict, walletDossier } from "./lib/chain.js";
 import { handleMcpRequest, isPaidMcpCall } from "./mcp-http.js";
 import { validateLEI, validateISIN, verifyToken, verifyPayment } from "./lib/institutional.js";
 import { signResponses, signingInfo } from "./lib/signing.js";
+import { mirror402Body } from "./lib/mirror-402.js";
 import { emailPosture, tlsPosture, typosquatCheck } from "./lib/security.js";
 import { gasOracle, tokenSupply, tokenActivity, blockInfo, portfolio } from "./lib/onchain-data.js";
 import { enrich } from "./lib/enrich.js";
@@ -230,6 +231,7 @@ if (X402_ENABLED) {
   );
   const declared = Object.values(routes).filter(r => r.extensions?.bazaar).length;
   console.log(`bazaar discovery declared on ${declared}/${Object.keys(routes).length} routes`);
+  app.use(mirror402Body());
   app.use(paymentMiddleware(routes, resourceServer, undefined, undefined, true));
   mcpGate = paymentMiddleware({ "POST /mcp": { accepts: { scheme: "exact", price: PRICES["POST /mcp"], network: NETWORK, payTo: PAY_TO }, mimeType: "application/json" } },
     resourceServer, undefined, undefined, false);
