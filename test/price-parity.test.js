@@ -107,3 +107,12 @@ test('the README says this is an MCP server', async () => {
     assert.ok(readme.includes(term), `README must mention ${term}`);
   }
 });
+
+// An independent conformance pass is the only evidence on the page that this
+// service did not grant itself. It must stay labelled as somebody else's record,
+// and it must point at the signed report, not at a summary of it.
+test('the independent conformance report is linked and labelled as not ours', () => {
+  assert.ok(html.includes('https://cairnwake.com/r/0dc13f40.html'), 'links the signed report');
+  assert.match(html, /Independent conformance report \(Cairn, 4 Sep 2026\)/, 'labelled with the author and date');
+  assert.ok(html.includes('Their record, not ours.'), 'states whose record it is');
+});
