@@ -348,12 +348,17 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 - POST https://chainverdict.xyz/v1/doc/html-to-markdown — HTML to Markdown, ${PRICE("POST /v1/doc/html-to-markdown")}
 - POST https://chainverdict.xyz/v1/doc/diff — structured text diff, ${PRICE("POST /v1/doc/diff")}
 
+## Free integration example
+- https://pulse.chainverdict.xyz/evidence.html — downloadable x402 observation checker, dated example, trust limits and x401 scope. No wallet needed.
+- Historical Pulse records for 56 days are mismatched; the checker excludes those and the 2 October 2026 transition day.
+- x401 proof requirements are distinct from x402 payment. This portfolio does not establish credential eligibility.
+
 ## Machine-readable
 - Methodology (free): https://chainverdict.xyz/v1/methodology
 - OpenAPI: https://chainverdict.xyz/openapi.json
 - x402 discovery: https://chainverdict.xyz/.well-known/x402.json
 - Response signing key (Ed25519, all /v1/* responses signed): https://chainverdict.xyz/.well-known/signing-key.json
-- Independent quality attestation (Ed25519-signed, refreshed daily by x402pulse): https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block
+- Cached same-operator quality attestation (Ed25519-signed; automatic refresh is off, inspect expiry): https://pulse.chainverdict.xyz/v1/attestations/latest?url=https://chainverdict.xyz/v1/data/block
 `));
 app.get("/.well-known/x402.json", (_req, res) => res.json({
   x402Version: 2,
