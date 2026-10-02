@@ -318,7 +318,7 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 > Assurance is ordinal, never numeric: a number would imply a calibration that has not been performed.
 > Responses carry an Ed25519 signature in an x-signature header over canonical JSON + '|' + x-signed-at;
 > the public key is base64 SPKI at /.well-known/signing-key.json, which states the exact recipe. This is not
-> the compact-JWS form the other services use, so verify these programmatically rather than at /verify.
+> the compact-JWS form the other services use; https://pulse.chainverdict.xyz/verify checks both forms.
 > Methodology is public and free to read: https://chainverdict.xyz/v1/methodology
 >
 > Honest scope: these are informational signals for decision support. They are NOT regulated financial, legal or
