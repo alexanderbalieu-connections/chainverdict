@@ -24,10 +24,11 @@ test("methodology does not claim a JWS this service does not produce", () => {
   assert.match(sig, /SPKI/i, "the published key format must be named");
 });
 
-test("methodology states that the browser verifier cannot check these receipts", () => {
-  // Known-and-disclosed beats silently-broken. The self-check already reports
-  // this as INFO; the public document must not imply otherwise.
-  assert.match(doc.evidenceModel.signature, /cannot currently check|not the compact-JWS/i);
+test("methodology names the header scheme and where it can be verified", () => {
+  // Since 2 Oct 2026 the /verify page checks header signatures too; the public
+  // document must say where, not that it cannot be done.
+  assert.match(doc.evidenceModel.signature, /not the compact-JWS/i);
+  assert.match(doc.evidenceModel.signature, /pulse\.chainverdict\.xyz\/verify checks both forms/);
 });
 
 test("no numeric-confidence language anywhere in the methodology", () => {
