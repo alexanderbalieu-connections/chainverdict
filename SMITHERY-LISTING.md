@@ -1,3 +1,5 @@
+> Local draft only; not submitted. Current focus is Pulse observation evidence. Existing generic routes are maintenance-only.
+
 Replacement text for the Smithery listing description
 (smithery.ai/servers/alexander-balieu/chainverdict -> Settings -> Description).
 
@@ -12,7 +14,7 @@ two markers below.
 
 --- paste from here ---
 
-Pay-per-call checks an AI agent runs before it moves money or trusts a counterparty. No API keys, no accounts, no signup. Each paid tool call settles in USDC on Base via the x402 protocol, straight from the agent's wallet ($0.001-$0.10 per call), through the Coinbase CDP facilitator, in about two seconds.
+Pay-per-call checks an AI agent runs before a proposed payment. No API keys, no accounts, no signup. Each paid tool call settles in USDC on Base via the x402 protocol, straight from the agent's wallet ($0.001-$0.10 per call), through the Coinbase CDP facilitator. Settlement timing depends on the network and facilitator.
 
 **Start with the free `payment_info` tool.** It costs nothing, explains how payment works, and lists the price of every other tool. A client without wallet support can still call it.
 

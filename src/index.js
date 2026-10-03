@@ -309,7 +309,7 @@ app.get("/.well-known/portfolio.json", (_req, res) =>
 
 app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 `# ChainVerdict
-> Evidence-backed checks an autonomous agent runs BEFORE it moves money or trusts a counterparty.
+> Evidence-backed checks an autonomous agent runs before a proposed payment.
 > Profile a recipient address, verify a token is canonical, confirm a payment settled,
 > validate an IBAN/VAT/BIC/LEI/ISIN, or check a domain's email/TLS posture — in one call, with no account.
 >
@@ -325,6 +325,14 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 > compliance advice, and the absence of a negative signal is never a guarantee of safety.
 >
 > Billing is per call in USDC on Base (x402) — no API keys, no signup, no subscription.
+
+## Product focus
+Pulse observation evidence is the active experiment: https://pulse.chainverdict.xyz/evidence.html
+These generic ChainVerdict routes are maintained; they are not a demonstrated moat.
+TradeRails remains available in maintenance, with retirement under review: https://trade.chainverdict.xyz/retirement.json
+
+## Input privacy
+Identifier GET routes put the submitted value in the URL. URLs can appear in browser history and intermediary logs. Do not send sensitive account details merely to try the service; prefer local validation when confidentiality is required.
 
 ## Paid endpoints (x402, USDC on Base)
 - GET https://chainverdict.xyz/v1/token/verdict/{address} — token safety verdict on Base, ${PRICE("GET /v1/token/verdict/*")}

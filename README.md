@@ -1,6 +1,6 @@
 # ChainVerdict — chainverdict.xyz
 
-Checks an autonomous agent runs **before it moves money or trusts a counterparty**:
+Checks an autonomous agent runs **before a proposed payment**:
 token safety verdicts and wallet risk profiles on Base, on-chain payment
 verification, financial-identifier validation, and live domain security posture.
 
