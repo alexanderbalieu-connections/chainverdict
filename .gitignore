@@ -2,3 +2,11 @@ key.pem
 *.pem
 mcp-publisher
 mcp-publisher.tar.gz
+node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+__pycache__/
+*.py[cod]
+npm-debug.log*

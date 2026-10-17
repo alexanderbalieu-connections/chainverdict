@@ -8,8 +8,7 @@ Every call is paid per request in USDC on Base over the **x402** protocol —
 no accounts, no API keys, no signup. Every response carries an evidence record
 saying what was checked, how fresh it is and what it does **not** establish, and
 is Ed25519-signed. **No LLM inference anywhere:** every answer is a deterministic
-computation or a live read of external state, so the same input returns the same
-answer forever.
+computation or a live read of external state, results from live external sources can change over time.
 
 ## MCP server
 
@@ -41,7 +40,7 @@ that is no longer sold, or if a sold route has no tool.
 | Tool | What it answers |
 |---|---|
 | `payment_info` | **Free.** How x402 payment works, the price of every tool, where payments settle. |
-| `token_verdict` | Is this ERC-20 on Base a scam, a honeypot, or safe to hold? |
+| `token_verdict` | Heuristic ERC-20 risk signals on Base; not a safety guarantee. |
 | `wallet_dossier` | Wallet risk profile for a Base address before you pay it. |
 | `verify_payment` | Decode and confirm an on-chain payment on Base. |
 | `verify_token` | Resolve a symbol or address to the canonical Base token. |
@@ -111,3 +110,10 @@ Operated by Alexander Balieu, independent professional established in Luxembourg
 ## Licence
 
 MIT. See [LICENSE](./LICENSE).
+
+## Local development and repository hygiene
+
+Run `npm ci` before `npm test` or `npm start`. Dependencies are installed from
+`package-lock.json`; `node_modules/` is local-only and is not stored in Git.
+Never commit environment files or signing keys. Live reads can change with
+upstream state; signed responses authenticate the statement, not its accuracy.
