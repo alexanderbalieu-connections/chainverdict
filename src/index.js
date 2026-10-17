@@ -1,3 +1,4 @@
+import { settlementEvidence } from './lib/settlement-evidence.js';
 import { rejectPaidHead } from './lib/reject-paid-head.js';
 import express from "express";
 import TurndownService from "turndown";
@@ -213,6 +214,8 @@ function bazaarExtensionFor(route) {
   }
 }
 
+const settlements = settlementEvidence({ service: 'chainverdict', routeKeys: Object.keys(PRICES) });
+app.use(settlements.middleware);
 app.use(rejectPaidHead(Object.keys(PRICES)));
 
 if (X402_ENABLED) {
@@ -221,6 +224,7 @@ if (X402_ENABLED) {
     ? new HTTPFacilitatorClient(createFacilitatorConfig(process.env.CDP_API_KEY_ID, process.env.CDP_API_KEY_SECRET))
     : new HTTPFacilitatorClient({ url: FACILITATOR_URL });
   const resourceServer = new x402ResourceServer(facilitatorClient).register(NETWORK, new ExactEvmScheme());
+  settlements.attach(resourceServer);
   const routes = Object.fromEntries(
     Object.entries(PRICES).filter(([r]) => r !== "POST /mcp")
       .map(([route, price]) => {

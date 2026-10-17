@@ -1,7 +1,7 @@
 {
   "name": "chainverdict",
   "version": "2.2.1",
-  "description": "",
+  "description": "Signed checks for agent payments, identifiers and Base data",
   "main": "src/index.js",
   "directories": {
     "test": "test"
@@ -29,5 +29,8 @@
   "type": "module",
   "overrides": {
     "axios": "^1.17.1"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }
