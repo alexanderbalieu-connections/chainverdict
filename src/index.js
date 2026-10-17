@@ -1,3 +1,4 @@
+import { rejectPaidHead } from './lib/reject-paid-head.js';
 import express from "express";
 import TurndownService from "turndown";
 import * as Diff from "diff";
@@ -211,6 +212,8 @@ function bazaarExtensionFor(route) {
     return undefined;
   }
 }
+
+app.use(rejectPaidHead(Object.keys(PRICES)));
 
 if (X402_ENABLED) {
   if (!PAY_TO) { console.error("PAY_TO_ADDRESS is required when X402_ENABLED"); process.exit(1); }
