@@ -4,19 +4,21 @@ import { paidRouteMatchers } from './paid-route-matchers.js';
 // Private operational evidence, not a public customer/revenue counter. Independent
 // services vendor this small module deliberately; keep its regression tests aligned.
 // Transaction hashes can reveal the payer and amount on-chain: keep logs private.
-export function settlementEvidence({ service, routeKeys, log = console.log, now = () => new Date().toISOString() }) {
+export function settlementEvidence({ service, routeKeys, onRecord = () => {}, log = console.log, now = () => new Date().toISOString() }) {
   const context = new AsyncLocalStorage();
   const routes = paidRouteMatchers(routeKeys);
   const emit = ctx => {
     if (!ctx || ctx.emitted || !ctx.finished || !ctx.settlement) return;
     ctx.emitted = true;
     try {
-      log(JSON.stringify({ event: 'chainverdict.settlement.v1', at: now(), service,
+      const record = { event: 'chainverdict.settlement.v1', at: now(), service,
         route: ctx.route, transaction: ctx.settlement.transaction,
         network: ctx.settlement.network, httpStatus: ctx.status,
         responseFinished: ctx.finished === 'finish',
         outcome: ctx.finished === 'finish' && ctx.status >= 200 && ctx.status < 300
-          ? 'settled_response_finished' : 'settled_response_failed_or_aborted' }));
+          ? 'settled_response_finished' : 'settled_response_failed_or_aborted' };
+      try { onRecord(record); } catch { /* Keep stdout recovery independent. */ }
+      log(JSON.stringify(record));
     } catch { /* Evidence must never interrupt payment or delivery. */ }
   };
   return {
@@ -40,9 +42,11 @@ export function settlementEvidence({ service, routeKeys, log = console.log, now 
         if (!result?.success || !/^0x[0-9a-fA-F]{64}$/.test(result.transaction || '') ||
             !/^eip155:\d+$/.test(result.network || '')) return;
         if (!ctx) {
-          try { log(JSON.stringify({ event: 'chainverdict.settlement.v1', at: now(), service, route: null,
+          try { const record = { event: 'chainverdict.settlement.v1', at: now(), service, route: null,
             transaction: result.transaction.toLowerCase(), network: result.network, httpStatus: null,
-            responseFinished: null, outcome: 'uncorrelated_settlement' })); } catch {}
+            responseFinished: null, outcome: 'uncorrelated_settlement' };
+            try { onRecord(record); } catch {}
+            log(JSON.stringify(record)); } catch {}
           return;
         }
         ctx.settlement = { transaction: result.transaction.toLowerCase(), network: result.network };

@@ -1,3 +1,4 @@
+import { settlementBuffer } from './lib/settlement-buffer.js';
 import { settlementEvidence } from './lib/settlement-evidence.js';
 import { rejectPaidHead } from './lib/reject-paid-head.js';
 import express from "express";
@@ -214,7 +215,9 @@ function bazaarExtensionFor(route) {
   }
 }
 
-const settlements = settlementEvidence({ service: 'chainverdict', routeKeys: Object.keys(PRICES) });
+const settlementRecords = settlementBuffer();
+settlementRecords.install(app);
+const settlements = settlementEvidence({ service: 'chainverdict', onRecord: r => settlementRecords.add(r), routeKeys: Object.keys(PRICES) });
 app.use(settlements.middleware);
 app.use(rejectPaidHead(Object.keys(PRICES)));
 
