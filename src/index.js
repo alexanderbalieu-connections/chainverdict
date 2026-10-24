@@ -27,6 +27,9 @@ const LANDING = readFileSync(join(__dir, "landing.html"), "utf8");
 
 const app = express();
 
+// Stable readiness path for the staged shared-host rollout.
+app.get("/_portfolio/health", (_req, res) => res.json({ ok: true }));
+
 app.set('trust proxy', true); // Render terminates TLS at its proxy; without this req.protocol is 'http' and CDP rejects the bazaar declaration
 let mcpGate = null;
 app.use(signResponses("/v1/"));
