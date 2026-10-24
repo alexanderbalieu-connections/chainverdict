@@ -8,6 +8,7 @@ COPY src ./src
 COPY scripts ./scripts
 COPY apps/traderails ./apps/traderails
 ENV NODE_ENV=production
+RUN mkdir -p /home/node/.ssh && chown node:node /home/node/.ssh && chmod 0700 /home/node/.ssh
 USER node
 EXPOSE 10000
 CMD ["node", "--max-old-space-size=64", "scripts/serve-apis.mjs"]
