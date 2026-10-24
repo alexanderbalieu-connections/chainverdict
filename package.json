@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "start:portfolio": "node --max-old-space-size=64 scripts/serve-apis.mjs"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +32,6 @@
     "axios": "^1.17.1"
   },
   "engines": {
-    "node": "22.x"
+    "node": "24.x"
   }
 }
