@@ -25,3 +25,7 @@ test('gateway preserves paid request bytes and signature headers, without retryi
  try{const result=await new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:gateway.address().port,path:'/paid',method:'POST',headers:{host:'trade.chainverdict.xyz','payment-signature':'opaque-proof'}},res=>{const chunks=[];res.on('data',c=>chunks.push(c));res.on('end',()=>resolve({status:res.statusCode,headers:res.headers,body:Buffer.concat(chunks)}));});req.on('error',reject);req.end(body);});assert.equal(result.status,200);assert.deepEqual(result.body,body);assert.equal(result.headers['x-signature'],'signed');assert.deepEqual(result.headers['set-cookie'],['a=1','b=2']);assert.equal(calls,1);}finally{await Promise.all([new Promise(r=>gateway.close(r)),new Promise(r=>backend.close(r))]);}
  assert.deepEqual(proxyHeaders({connection:'x-private','x-private':'remove','payment-signature':'keep'}),{'payment-signature':'keep'});
 });
+test('synchronous dispatch errors return a gateway error without crashing',async()=>{
+ const gateway=createPortfolioGateway({ports:{traderails:-1}});await new Promise(r=>gateway.listen(0,'127.0.0.1',r));
+ try{const status=await new Promise((resolve,reject)=>{http.get({hostname:'127.0.0.1',port:gateway.address().port,headers:{host:'trade.chainverdict.xyz'}},r=>{r.resume();resolve(r.statusCode);}).on('error',reject);});assert.equal(status,502);}finally{await new Promise(r=>gateway.close(r));}
+});

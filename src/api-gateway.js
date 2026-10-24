@@ -22,6 +22,7 @@ export function createPortfolioGateway({ports,ready=()=>true}) {
     const role=roleForHost(req.headers.host);
     if(!role||!ports[role]){res.writeHead(404);res.end();return;}
     if(!ready(role)){res.writeHead(503,{'retry-after':'5'});res.end();return;}
+    try {
     const headers=proxyHeaders(req.headers);
     // Keep the validated public host for signed resources and facilitator URLs.
     headers.host=req.headers.host;
@@ -35,6 +36,9 @@ export function createPortfolioGateway({ports,ready=()=>true}) {
     req.on('aborted',()=>upstream.destroy());
     res.on('close',()=>{if(!res.writableFinished)upstream.destroy();});
     req.pipe(upstream); // no body reserialization, buffering, or paid-request retries
+    } catch {
+      if(!res.headersSent){res.writeHead(502);res.end();}else res.destroy();
+    }
   });
 }
 

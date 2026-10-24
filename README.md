@@ -1,5 +1,6 @@
-<!-- Production topology is documented in HOSTING.md. -->
 # ChainVerdict — chainverdict.xyz
+
+Hosting: the main API and TradeRails share one service; Pulse retains its own server and data disk. See [the hosting and rollback guide](HOSTING.md).
 
 Checks an autonomous agent runs **before a proposed payment**:
 token safety verdicts and wallet risk profiles on Base, on-chain payment

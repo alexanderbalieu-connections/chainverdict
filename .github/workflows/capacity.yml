@@ -2,8 +2,12 @@ name: two-service hosting capacity
 on:
   push:
     branches: [codex/combine-api-hosting]
+    paths-ignore: ['**/*.md']
 permissions:
   contents: read
+concurrency:
+  group: api-capacity-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   capacity:
     runs-on: ubuntu-latest

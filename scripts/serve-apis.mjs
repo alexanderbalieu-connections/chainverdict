@@ -10,9 +10,9 @@ for(const role of Object.keys(ports))start(role);
 function start(role){
   if(stopping)return;
   const child=fork(new URL('./api-child.mjs',import.meta.url),[role],{env:environments[role],execArgv:[`--max-old-space-size=${heaps[role]}`],stdio:['ignore','inherit','inherit','ipc']});children.set(role,child);
-  child.on('message',m=>{if(m?.ready){ready.add(role);process.send?.({childReady:role,pid:child.pid});}});
+  let stable;
+  child.on('message',m=>{if(m?.ready){ready.add(role);process.send?.({childReady:role,pid:child.pid});if(!stable){stable=setTimeout(()=>restarts.set(role,0),60000);stable.unref();}}});
   child.on('error',()=>{ready.delete(role);console.error('portfolio child unavailable:',role);});
-  const stable=setTimeout(()=>restarts.set(role,0),60000);stable.unref();
   child.on('exit',()=>{
     clearTimeout(stable);ready.delete(role);process.send?.({childExited:role});
     if(!stopping){const count=(restarts.get(role)||0)+1;restarts.set(role,count);const delay=Math.min(60000,5000*2**Math.min(count-1,4));console.error('portfolio worker restart:',role,'attempt',count,'delay_ms',delay);setTimeout(()=>start(role),delay);}
