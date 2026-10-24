@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: traderails
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      - key: PAY_TO_ADDRESS
+        sync: false
+      - key: SIGNING_KEY_PKCS8_B64
+        sync: false
+      - key: CDP_API_KEY_ID
+        sync: false
+      - key: CDP_API_KEY_SECRET
+        sync: false
+      - key: X402_NETWORK
+        value: eip155:8453

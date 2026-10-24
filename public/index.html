@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TradeRails — deterministic trade & logistics primitives for agents</title>
+<style>
+  :root { --ink:#0d1b2a; --mut:#5b6b7b; --line:#e4e9ef; --acc:#0b6e4f; --bg:#fbfcfd; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  .wrap { max-width:860px; margin:0 auto; padding:56px 22px 80px; }
+  h1 { font-size:34px; margin:0 0 6px; letter-spacing:-.02em; }
+  .tag { color:var(--mut); font-size:18px; margin:0 0 18px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 30px; }
+  .chips span { font-size:12.5px; color:var(--acc); background:#eaf5f0; border:1px solid #cfe8de; border-radius:999px; padding:4px 11px; }
+  h2 { font-size:15px; text-transform:uppercase; letter-spacing:.06em; color:var(--mut); margin:34px 0 12px; }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  td { border-top:1px solid var(--line); padding:10px 8px; vertical-align:top; }
+  td.p { white-space:nowrap; color:var(--acc); font-variant-numeric:tabular-nums; font-weight:600; }
+  code { background:#eef2f6; padding:1.5px 6px; border-radius:5px; font-size:13px; }
+  .note { color:var(--mut); font-size:13.5px; border-left:3px solid var(--line); padding:2px 0 2px 14px; margin:22px 0; }
+  a { color:var(--acc); }
+  footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--line); font-size:13px; color:var(--mut); display:flex; gap:16px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>TradeRails</h1><div class="note"><strong>Maintenance &amp; retirement review · 3 October 2026</strong><p>Existing routes and prices remain available. We are focusing new development on <a href="https://pulse.chainverdict.xyz/evidence.html">Pulse observation evidence</a>. TradeRails will be reviewed on 31 October; any retirement will be manually reviewed and no earlier than 2 November 2026. There is no automatic shutdown.</p><p>If your integration depends on these routes, contact <a href="mailto:contact@chainverdict.xyz">contact@chainverdict.xyz</a>. <a href="/retirement.json">Signed lifecycle notice</a> · <a href="https://github.com/alexanderbalieu-connections/traderails">Source code</a></p></div>
+  <p class="tag">Deterministic trade &amp; logistics primitives for commerce agents.</p>
+  <div class="chips">
+    <span>USDC on Base · x402</span><span>no keys · no signup</span><span>Ed25519-signed</span><span>zero upstream cost</span><span>no LLM in the path</span>
+  </div>
+
+  <p>Language models confidently invent GTIN check digits, mangle GS1 barcode fields, and guess HS codes. TradeRails doesn't guess — every answer is pure public-spec math (GS1 General Specifications, ISO&nbsp;6346, IMO), re-verifiable offline against a signed key. Agents pay per call; the checks are deterministic; receipt timestamps and signatures vary.</p>
+
+  <h2>Endpoints</h2>
+  <table>
+    <tr><td><code>GET /v1/gtin/validate?code=</code><br>Validate GTIN-8/12/13/14, UPC-A, EAN-13 — check digit, format, GTIN-14, packaging indicator.</td><td class="p">$0.004</td></tr>
+    <tr><td><code>GET /v1/gtin/checkdigit?body=</code><br>Compute the GS1 check digit for a code body that is missing it.</td><td class="p">$0.004</td></tr>
+    <tr><td><code>GET /v1/gtin/prefix?code=</code><br>GS1 Member Organisation for a prefix. <em>(Numbering org — not country of origin.)</em></td><td class="p">$0.004</td></tr>
+    <tr><td><code>GET /v1/sscc/validate?code=</code><br>SSCC-18 logistics-unit serial shipping container code.</td><td class="p">$0.004</td></tr>
+    <tr><td><code>GET /v1/container/validate?code=</code><br>ISO 6346 shipping container number — owner, category, serial, check digit.</td><td class="p">$0.004</td></tr>
+    <tr><td><code>GET /v1/imo/validate?code=</code><br>IMO ship identification number check digit.</td><td class="p">$0.004</td></tr>
+    <tr><td><code>GET /v1/gs1/decode?data=</code><br>Decode a GS1 element string / GS1-128 (GTIN, batch, expiry, serial, weight). Human <code>(01)…(17)…</code> or raw FNC1.</td><td class="p">$0.006</td></tr>
+    <tr><td><code>GET /v1/hs/classify?q=</code><br>HS-code triage: ranked candidate headings + official text + GRI note. <em>Informational, not a customs ruling.</em></td><td class="p">$0.05</td></tr>
+  </table>
+
+  <p class="note">Every paid response carries an <code>_attestation</code> (Ed25519 compact JWS). Verify it offline against <a href="/.well-known/signing-key.json">/.well-known/signing-key.json</a> — proof the answer came from TradeRails and wasn't altered.</p>
+
+  <h2>For agents</h2>
+  <p><a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">openapi.json</a> · <a href="/.well-known/x402.json">x402 discovery</a> · <a href="/.well-known/signing-key.json">signing key</a></p>
+
+  <footer>
+    <span>Deterministic. Signed. Keyless.</span>
+    <a href="/llms.txt">llms.txt</a>
+    <a href="/openapi.json">OpenAPI</a>
+  </footer>
+</div>
+</body>
+</html>
