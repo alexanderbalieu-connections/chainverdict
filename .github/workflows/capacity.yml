@@ -1,0 +1,32 @@
+name: two-service hosting capacity
+on:
+  push:
+    branches: [codex/combine-api-hosting]
+    paths-ignore: ['**/*.md']
+permissions:
+  contents: read
+concurrency:
+  group: api-capacity-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  capacity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: docker build -t chainverdict-capacity .
+      - name: Test actual image in 512 MiB with half CPU and no swap
+        run: |
+          mkdir -p /tmp/cv-capacity-result
+          chmod 777 /tmp/cv-capacity-result
+          docker run --rm --network=none --memory=512m --memory-swap=512m --cpus=0.5 --pids-limit=64 \
+            -v /tmp/cv-capacity-result:/result -e CAPACITY_OUTPUT=/result/result.json \
+            chainverdict-capacity node --max-old-space-size=64 scripts/two-host-capacity.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: two-service-capacity
+          path: /tmp/cv-capacity-result/result.json
+          retention-days: 3
