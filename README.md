@@ -1,3 +1,4 @@
+<!-- Production topology is documented in HOSTING.md. -->
 # ChainVerdict — chainverdict.xyz
 
 Checks an autonomous agent runs **before a proposed payment**:
