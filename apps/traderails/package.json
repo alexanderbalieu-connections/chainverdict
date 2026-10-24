@@ -1,0 +1,29 @@
+{
+  "name": "traderails",
+  "version": "1.4.1",
+  "description": "Signed trade identifier checks served over x402",
+  "main": "server.js",
+  "scripts": {
+    "test": "node --test",
+    "start": "node server.js",
+    "keygen": "node scripts/keygen.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@coinbase/x402": "^2.1.0",
+    "@x402/core": "^2.21.0",
+    "@x402/evm": "^2.21.0",
+    "@x402/express": "^2.21.0",
+    "@x402/extensions": "^2.0.0",
+    "express": "^5.2.1"
+  },
+  "type": "module",
+  "overrides": {
+    "axios": "^1.17.1"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}
