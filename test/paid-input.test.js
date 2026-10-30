@@ -28,3 +28,18 @@ test('every parameterized discovery route rejects its placeholder and supplies a
   for(const v of [':value','%7Bvalue%7D','*'])assert.equal((await fetch(base+r.path.replace('*',v))).status,400,r.path);
  }
 });
+test('every Express GET path parameter has prepayment metadata coverage',async t=>{
+ const s=app.listen(0);await new Promise(r=>s.once('listening',r));t.after(()=>s.close());
+ const base=`http://127.0.0.1:${s.address().port}`;
+ const d=await(await fetch(base+'/.well-known/x402.json')).json();
+ const declared=new Set(d.resources.filter(r=>r.method==='GET').map(r=>r.path.toLowerCase()));
+ const paths=app.router.stack.filter(l=>l.route?.methods.get && typeof l.route.path==='string' && l.route.path.includes('/:')).map(l=>l.route.path);
+ assert.ok(paths.length>0);
+ for(const path of paths){
+  assert.ok(declared.has(path.replace(/:[^/]+/g,'*').toLowerCase()),path);
+  for(const suffix of [':value','%3Avalue','%7Bvalue%7D','%zz']){
+   const url=path.replace(/:[^/]+/g,suffix);
+   for(const p of [url,url+'/',url.toUpperCase()])assert.equal((await fetch(base+p)).status,400,p);
+  }
+ }
+});
