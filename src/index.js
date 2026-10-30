@@ -1,5 +1,6 @@
 import { settlementBuffer } from './lib/settlement-buffer.js';
 import { settlementEvidence } from './lib/settlement-evidence.js';
+import { rejectInvalidPaidPath } from './lib/reject-invalid-paid-path.js';
 import { rejectPaidHead } from './lib/reject-paid-head.js';
 import express from "express";
 import TurndownService from "turndown";
@@ -223,6 +224,7 @@ settlementRecords.install(app);
 const settlements = settlementEvidence({ service: 'chainverdict', onRecord: r => settlementRecords.add(r), routeKeys: Object.keys(PRICES) });
 app.use(settlements.middleware);
 app.use(rejectPaidHead(Object.keys(PRICES)));
+app.use(rejectInvalidPaidPath(BAZAAR_ROUTES));
 
 if (X402_ENABLED) {
   if (!PAY_TO) { console.error("PAY_TO_ADDRESS is required when X402_ENABLED"); process.exit(1); }
@@ -391,7 +393,9 @@ app.get("/.well-known/x402.json", (_req, res) => res.json({
   payTo: PAY_TO || null,
   resources: Object.entries(PRICES).filter(([r]) => r !== "POST /mcp").map(([route, price]) => {
     const [method, path] = route.split(" ");
-    return { method, path, price, discoverable: true };
+    const meta = BAZAAR_ROUTES[route];
+    const examplePath = meta?.p ? path.replace("*", encodeURIComponent(meta.ex)) : path;
+    return { method, path, price, discoverable: true, exampleUrl: `https://chainverdict.xyz${examplePath}`, ...(meta?.body ? { exampleBody: meta.body } : {}) };
   }),
   openapi: "https://chainverdict.xyz/openapi.json",
   contact: "https://chainverdict.xyz"
@@ -527,7 +531,7 @@ function openapiSpec() {
       const op = {
         summary: `${path} — ${price} USDC per call via x402`,
         parameters: PARAMS[oaPath] || [{ name: "format", in: "query", required: false, description: "Response format (json)", schema: { type: "string", enum: ["json"], default: "json" }, example: "json" }],
-        responses: { 200: { description: "JSON result", content: { "application/json": { schema: { type: "object", additionalProperties: true } } } }, 402: { description: "Payment required (x402 v2)" } }
+        responses: { 200: { description: "JSON result", content: { "application/json": { schema: { type: "object", additionalProperties: true } } } }, 400: { description: "Malformed path input or unresolved placeholder; rejected before payment" }, 402: { description: "Payment required (x402 v2)" } }
       };
       if (BODIES[oaPath]) op.requestBody = BODIES[oaPath];
       return [oaPath, { [method.toLowerCase()]: op }];

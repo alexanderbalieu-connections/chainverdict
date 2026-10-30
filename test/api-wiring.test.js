@@ -20,6 +20,7 @@ test('real API launcher keeps both signing identities and unpaid gates separate'
   const main=await request('chainverdict.xyz','/.well-known/signing-key.json');assert.equal(main.status,200);assert.equal(JSON.parse(main.body).public_key_spki_b64,createPublicKey(createPrivateKey({key:Buffer.from(keys.chainverdict,'base64'),format:'der',type:'pkcs8'})).export({format:'der',type:'spki'}).toString('base64'));
   for(const [role,host]of [['traderails','trade.chainverdict.xyz']]){const r=await request(host,'/.well-known/signing-key.json');assert.equal(r.status,200);assert.equal(JSON.parse(r.body).keys[0].x,jwk(keys[role]).x);}
   for(const [host,url]of [['chainverdict.xyz','/v1/validate/iban/DE89370400440532013000'],['trade.chainverdict.xyz','/v1/imo/validate?code=9074729']])assert.equal((await request(host,url)).status,402);
+  for (const bad of [':address', '%3Aaddress', '%7Baddress%7D', '0x123']) assert.equal((await request('chainverdict.xyz','/v1/token/verdict/'+bad)).status,400);
   assert.equal((await request('evil.test','/.well-known/signing-key.json')).status,404);
   const old=pids.traderails;assert.ok(old);process.kill(old,'SIGKILL');
   await sleep(250);assert.equal((await request('chainverdict.xyz','/.well-known/signing-key.json')).status,200);
