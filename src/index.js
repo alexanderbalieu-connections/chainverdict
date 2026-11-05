@@ -261,6 +261,7 @@ app.get("/", (req, res) => {
   res.json({
   service: "ChainVerdict",
   homepage: "https://chainverdict.xyz",
+  purchaseEvidence: "https://pulse.chainverdict.xyz/purchase-evidence.html",
   description: "Repeatable checks on tokens, wallets, payments, identifiers and domains for software using crypto payments. Each result explains the sources, freshness and limitations. Observations do not establish trustworthiness, safety or successful delivery.",
   payment: { protocol: "x402", network: NETWORK, currency: "USDC" },
   // POST /mcp is filtered out of the resource lists in x402.json (line ~312) and
@@ -342,7 +343,10 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 > Billing is per call in USDC on Base (x402) — no API keys, no signup, no subscription.
 
 ## Product focus
-Pulse observation evidence is the active experiment: https://pulse.chainverdict.xyz/evidence.html
+Before an agent buys: https://pulse.chainverdict.xyz/purchase-evidence.html
+Free local selected Base-USDC policy comparison plus a separate new dataset of sampled option fingerprints and x401 envelope counts. No purchase execution or credential verification; first day partial, no backfill.
+Existing Pulse feed/archive supply reusable bundles; read their live quotes. Cache within your own freshness policy.
+Original archive checker: https://pulse.chainverdict.xyz/evidence.html
 These generic ChainVerdict routes are maintained; they are not a demonstrated moat.
 TradeRails remains available in maintenance, with retirement under review: https://trade.chainverdict.xyz/retirement.json
 
