@@ -1,3 +1,4 @@
+import { pulseWebsite } from "./pulse-website.js";
 import { settlementBuffer } from './lib/settlement-buffer.js';
 import { settlementEvidence } from './lib/settlement-evidence.js';
 import { rejectInvalidPaidPath } from './lib/reject-invalid-paid-path.js';
@@ -256,12 +257,15 @@ if (X402_ENABLED) {
 }
 
 // ---- Free discovery endpoints (agents & humans) ----
+app.use(pulseWebsite);
+app.get("/traderails", (_req, res) => res.sendFile("traderails.html", { root: __dir }));
+
 app.get("/", (req, res) => {
   if ((req.headers.accept || "").includes("text/html")) return res.type("html").send(LANDING);
   res.json({
   service: "ChainVerdict",
   homepage: "https://chainverdict.xyz",
-  purchaseEvidence: "https://pulse.chainverdict.xyz/purchase-evidence.html",
+  purchaseEvidence: "https://chainverdict.xyz/pulse/purchase-evidence.html",
   description: "Repeatable checks on tokens, wallets, payments, identifiers and domains for software using crypto payments. Each result explains the sources, freshness and limitations. Observations do not establish trustworthiness, safety or successful delivery.",
   payment: { protocol: "x402", network: NETWORK, currency: "USDC" },
   // POST /mcp is filtered out of the resource lists in x402.json (line ~312) and
@@ -309,7 +313,7 @@ Sitemap: https://chainverdict.xyz/sitemap.xml
 app.get("/sitemap.xml", (_req, res) => res.type("application/xml").send(
 `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${["/", "/llms.txt", "/openapi.json", "/.well-known/x402.json", "/v1/methodology"]
+${["/", "/traderails", "/service-information", "/pulse/", "/pulse/evidence.html", "/pulse/inspector.html", "/pulse/purchase-evidence.html", "/pulse/status.html", "/pulse/verify.html", "/pulse/collection-method.html", "/pulse/comparison.html", "/pulse/evidence-example.html", "/llms.txt", "/openapi.json", "/.well-known/x402.json", "/v1/methodology"]
   .map((u) => `  <url><loc>https://chainverdict.xyz${u}</loc></url>`).join("\n")}
 </urlset>
 `));
@@ -336,7 +340,7 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 > Assurance is ordinal, never numeric: a number would imply a calibration that has not been performed.
 > Responses carry an Ed25519 signature in an x-signature header over canonical JSON + '|' + x-signed-at;
 > the public key is base64 SPKI at /.well-known/signing-key.json, which states the exact recipe. This is not
-> the compact-JWS form the other services use; https://pulse.chainverdict.xyz/verify checks both forms.
+> the compact-JWS form the other services use; https://chainverdict.xyz/pulse/verify.html checks both forms.
 > Methodology is public and free to read: https://chainverdict.xyz/v1/methodology
 >
 > Honest scope: these are informational signals for decision support. They are NOT regulated financial, legal or
@@ -345,7 +349,7 @@ app.get("/llms.txt", (_req, res) => res.type("text/plain").send(
 > Billing is per call in USDC on Base (x402) — no API keys, no signup, no subscription.
 
 ## Product focus
-Before an agent buys: https://pulse.chainverdict.xyz/purchase-evidence.html
+Before an agent buys: https://chainverdict.xyz/pulse/purchase-evidence.html
 Free local selected Base-USDC policy comparison plus a separate new dataset of sampled option fingerprints and x401 envelope counts. No purchase execution or credential verification; first day partial, no backfill.
 Existing Pulse feed/archive supply reusable bundles; read their live quotes. Cache within your own freshness policy.
 Original archive checker: https://pulse.chainverdict.xyz/evidence.html

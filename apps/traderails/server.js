@@ -8,7 +8,6 @@ import { rejectPaidHead } from './lib/reject-paid-head.js';
 // spec math (with versioned reference tables) and Ed25519-signed.
 
 import express from 'express';
-import { readFileSync } from 'node:fs';
 import { paymentMiddleware, x402ResourceServer } from '@x402/express';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { HTTPFacilitatorClient } from '@x402/core/server';
@@ -288,17 +287,8 @@ ${['/', '/retirement.json', '/llms.txt', '/openapi.json', '/.well-known/x402.jso
   .map((u) => `  <url><loc>https://trade.chainverdict.xyz${u}</loc></url>`).join('\n')}
 </urlset>
 `));
-  // Serve the same lifecycle notice for both homepage URLs, even after retirement.
-  app.get(['/', '/index.html'], (req, res) => {
-    if (retired) return res.type('html').send('<!doctype html><html lang="en"><title>TradeRails retired</title><main><h1>TradeRails has retired</h1><p>Paid routes return signed HTTP 410. No payment is accepted.</p><a href="/retirement.json">Retirement record</a> · <a href="/.well-known/signing-key.json">Verify earlier receipts</a></main></html>');
-    res.type('html').send(readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8'));
-  });
-  app.use(express.static(path.join(__dirname, 'public')));
-  app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'), (e) => {
-      if (e) res.json({ service: 'traderails', see: '/llms.txt' });
-    });
-  });
+  app.get(['/', '/index.html'], (req, res) =>
+    res.redirect(308, 'https://chainverdict.xyz/traderails' + req.url.slice(req.path.length)));
 
   return { app, signer };
 }

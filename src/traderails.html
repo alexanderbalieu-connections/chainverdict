@@ -3,10 +3,10 @@
 <title>TradeRails | Trade and logistics checks</title><meta name="description" content="API checks for barcodes, logistics identifiers and customs heading candidates."><link rel="stylesheet" href="/brand.css"></head>
 <body class="cv-page"><a class="cv-skip" href="#main">Skip to content</a>
 <div class="cv-nav"><a class="cv-wordmark" href="https://chainverdict.xyz/">ChainVerdict</a>
-<nav aria-label="Main navigation"><a href="https://pulse.chainverdict.xyz/evidence.html#live-check">Check an API</a><a href="https://pulse.chainverdict.xyz/inspector.html">Inspect requests</a><a href="https://chainverdict.xyz/#rates">Services &amp; prices</a><a href="https://pulse.chainverdict.xyz/status.html">Evidence &amp; status</a></nav></div>
+<nav aria-label="Main navigation"><a href="/pulse/evidence.html#live-check">Check an API</a><a href="/pulse/inspector.html">Inspect requests</a><a href="https://chainverdict.xyz/#rates">Services &amp; prices</a><a href="/pulse/status.html">Evidence &amp; status</a></nav></div>
 <main id="main" tabindex="-1" class="cv-content">
 <section class="cv-hero"><p class="cv-kicker">ChainVerdict / TradeRails</p><h1>Check trade and logistics identifiers.</h1><p>Validate barcodes, container numbers and vessel identifiers, or get candidate customs headings from a goods description.</p></section>
-<section id="endpoints"><h2>Routes and prices</h2><p>Prices are in USDC per request. The current x402 quote is returned with HTTP 402. Format checks do not verify ownership. Customs heading suggestions are a starting point for review.</p><p class="cv-links"><a href="/openapi.json">API reference</a><a href="/llms.txt">Agent guide</a><a href="/.well-known/x402.json">x402 discovery</a></p><div class="table-wrap" role="region" aria-label="TradeRails routes and prices" tabindex="0"><table>
+<section id="endpoints"><h2>Routes and prices</h2><p>Prices are in USDC per request. The current x402 quote is returned with HTTP 402. Format checks do not verify ownership. Customs heading suggestions are a starting point for review.</p><p class="cv-links"><a href="https://trade.chainverdict.xyz/openapi.json">API reference</a><a href="https://trade.chainverdict.xyz/llms.txt">Agent guide</a><a href="https://trade.chainverdict.xyz/.well-known/x402.json">x402 discovery</a></p><div class="table-wrap" role="region" aria-label="TradeRails routes and prices" tabindex="0"><table>
     <tr><td><code>GET /v1/gtin/validate?code=</code><br>Validate GTIN-8/12/13/14, UPC-A, EAN-13 — check digit, format, GTIN-14, packaging indicator.</td><td class="p">0.004</td></tr>
     <tr><td><code>GET /v1/gtin/checkdigit?body=</code><br>Compute the GS1 check digit for a code body that is missing it.</td><td class="p">0.004</td></tr>
     <tr><td><code>GET /v1/gtin/prefix?code=</code><br>GS1 Member Organisation for a prefix. <em>(Numbering org — not country of origin.)</em></td><td class="p">0.004</td></tr>
@@ -17,5 +17,5 @@
     <tr><td><code>POST /v1/gs1/decode</code><br>Decode a GS1 element string from a JSON request body.</td><td class="p">0.006</td></tr>
     <tr><td><code>GET /v1/hs/classify?q=</code><br>HS-code triage: ranked candidate headings + official text + GRI note. <em>Informational, not a customs ruling.</em></td><td class="p">0.05</td></tr>
   </table></div>
-<p>TradeRails is in maintenance. <a href="/retirement.json">Read the lifecycle notice</a>.</p></section></main>
-<div class="cv-footer"><nav aria-label="Footer"><a href="https://pulse.chainverdict.xyz/">Pulse</a><a href="https://trade.chainverdict.xyz/">TradeRails</a><a href="https://chainverdict.xyz/service-information">Privacy &amp; service information</a><a href="mailto:contact@chainverdict.xyz">Contact</a></nav></div></body></html>
+<p>TradeRails is in maintenance. <a href="https://trade.chainverdict.xyz/retirement.json">Read the lifecycle notice</a>.</p></section></main>
+<div class="cv-footer"><nav aria-label="Footer"><a href="/pulse/">Pulse</a><a href="/traderails">TradeRails</a><a href="https://chainverdict.xyz/service-information">Privacy &amp; service information</a><a href="mailto:contact@chainverdict.xyz">Contact</a></nav></div></body></html>

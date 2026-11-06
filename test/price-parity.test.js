@@ -69,8 +69,8 @@ test('the worked payment example quotes the real token/verdict price', async () 
 });
 
 test('the homepage links to the separate TradeRails and Pulse catalogs', () => {
-  assert.ok(html.includes('href="https://trade.chainverdict.xyz/"'));
-  assert.ok(html.includes('href="https://pulse.chainverdict.xyz/#endpoints"'));
+  assert.ok(html.includes('href="/traderails"'));
+  assert.ok(html.includes('href="/pulse/#endpoints"'));
 });
 
 // The README is now the public front door of a public repository, and it was
