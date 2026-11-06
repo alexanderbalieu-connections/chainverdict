@@ -93,3 +93,7 @@ body.cv-page, body.cv-tool {
   .cv-nav { gap: .25rem; }
   .cv-nav nav { gap: .2rem .9rem; }
 }
+
+.cv-catalog-grid { margin-block: 1.25rem; }
+.cv-catalog:has(details[open]) { grid-column: 1 / -1; }
+.cv-catalog summary { overflow-wrap: anywhere; }

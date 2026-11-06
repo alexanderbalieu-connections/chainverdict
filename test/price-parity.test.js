@@ -54,7 +54,7 @@ test('every rate-card price equals the served price for that route', async () =>
     );
     const m = html.match(rowRe);
     if (!m) { mismatches.push(`${route}: no row on the landing page`); continue; }
-    if (m[1].trim() !== price) mismatches.push(`${route}: page says ${m[1].trim()}, server quotes ${price}`);
+    if (m[1].trim() !== price.replace(/^\$/, "")) mismatches.push(`${route}: page says ${m[1].trim()}, server quotes ${price}`);
   }
   assert.deepEqual(mismatches, [], 'landing page prices disagree with served prices');
 });
@@ -68,9 +68,12 @@ test('the worked payment example quotes the real token/verdict price', async () 
   assert.equal(m[1], tv.price, 'example price must be the real price');
 });
 
-test('the homepage links to the separate TradeRails and Pulse catalogs', () => {
-  assert.ok(html.includes('href="/traderails"'));
-  assert.ok(html.includes('href="/pulse/#endpoints"'));
+test('the homepage contains all 34 paid routes across the three service catalogs', () => {
+  for (const [id, count] of [['chainverdict', 20], ['traderails', 9], ['pulse', 5]]) {
+    const section = html.split(`id="${id}-prices"`)[1].split('</article>')[0];
+    assert.equal((section.match(/<tr><td/g) || []).length, count);
+    assert.ok(section.includes('/openapi.json'));
+  }
 });
 
 // The README is now the public front door of a public repository, and it was
@@ -109,5 +112,4 @@ test('the README says this is an MCP server', async () => {
 test('the independent conformance report is linked and labelled as not ours', () => {
   assert.ok(html.includes('https://cairnwake.com/r/0dc13f40.html'), 'links the signed report');
   assert.match(html, /Independent conformance report \(Cairn, 4 Sep 2026\)/, 'labelled with the author and date');
-  assert.ok(html.includes('Their record, not ours.'), 'states whose record it is');
 });

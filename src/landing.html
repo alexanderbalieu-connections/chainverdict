@@ -3,47 +3,81 @@
 <title>ChainVerdict | Check an API before paying</title><meta name="description" content="Free tools for inspecting API payment requests, plus paid checks on Base."><link rel="stylesheet" href="/brand.css"></head>
 <body class="cv-page"><a class="cv-skip" href="#main">Skip to content</a>
 <div class="cv-nav"><a class="cv-wordmark" href="https://chainverdict.xyz/">ChainVerdict</a>
-<nav aria-label="Main navigation"><a href="/pulse/evidence.html#live-check">Check an API</a><a href="/pulse/inspector.html">Inspect requests</a><a href="https://chainverdict.xyz/#rates">Services &amp; prices</a><a href="/pulse/status.html">Evidence &amp; status</a></nav></div>
+<nav aria-label="Main navigation"><a href="#rates">Services &amp; prices</a><a href="#tools">Free tools</a><a href="/pulse/status.html">Status</a></nav></div>
 <main id="main" tabindex="-1" class="cv-content">
 <section class="cv-hero" id="checks">
-<p class="cv-kicker">Free developer tools</p>
-<h1>Check what an API asks you to pay.</h1>
-<p>See what a paid API asks for, or compare two requests to spot changes in price, recipient or other payment terms.</p>
-<div class="cv-actions"><a class="cv-primary" href="/pulse/evidence.html#live-check">Check an API</a><a href="/pulse/inspector.html">Compare requests</a></div>
+<h1>Check APIs, payments and identifiers.</h1>
+<p>Use the free tools to inspect an API payment request, or use our paid APIs for blockchain, trade and reliability data.</p>
+<div class="cv-actions"><a class="cv-primary" href="#rates">Browse services &amp; prices</a><a href="/pulse/evidence.html#live-check">Check an API for free</a></div>
 </section>
-<section id="how"><h2>What you can check</h2><div class="cv-grid">
-<article><h3>Check a live URL</h3><p>Send an unpaid request and see the advertised payment terms, when available. Use a public URL without secrets.</p><a href="/pulse/evidence.html#live-check">Open the live check</a></article>
-<article><h3>Inspect two captures</h3><p>Compare payment terms and inspect proof requests in your browser. Your pasted captures stay on your device.</p><a href="/pulse/inspector.html">Open Inspector</a></article>
-<article id="evidence"><h3>Look at past observations</h3><p>Download Pulse records and check how they were collected. Coverage varies by endpoint and date.</p><a href="/pulse/purchase-evidence.html">Explore payment history</a></article>
-</div><p class="cv-note">You control whether to pay. These checks do not verify identity, authorize a purchase or confirm delivery.</p></section>
-<section id="developers"><h2 id="rates">Paid API catalog</h2>
-<p>Separate from the free tools, ChainVerdict offers programmatic checks on Base tokens, wallets, payments and identifiers. Prices use dollar notation and are charged in USDC per request. Your x402 client gets the current quote in the HTTP 402 response before payment.</p>
-<p class="cv-links"><a href="/openapi.json">API reference and request formats</a><a href="/llms.txt">Agent guide</a><a href="/.well-known/x402.json">x402 discovery</a></p>
-<details open><summary>ChainVerdict routes and prices</summary><div class="table-wrap" role="region" aria-label="ChainVerdict routes and prices" tabindex="0"><table>
-    <tr><th scope="col">ENDPOINT</th><th scope="col">WHAT YOU GET</th><th scope="col">PRICE</th></tr>
-    <tr><td class="route">GET /v1/token/verdict/{addr}</td><td>Token checks on Base: selected contract capabilities, ownership and metadata. Heuristic output; not a security audit.</td><td class="price">$0.01</td></tr>
-    <tr><td class="route">GET /v1/wallet/dossier/{addr}</td><td>Wallet profile — EOA/contract, balance, activity band, behavioural flags, as-of block.</td><td class="price">$0.01</td></tr>
-    <tr><td class="route">GET /v1/data/gas</td><td>Live Base gas oracle — base fee, priority fees, congestion level, estimated transfer cost. What agents check before transacting.</td><td class="price">$0.002</td></tr>
-    <tr><td class="route">GET /v1/data/activity/{token}</td><td>Recent transfer count, volume, and unique wallet activity for a token on Base — observed activity, not proof of liquidity or demand.</td><td class="price">$0.005</td></tr>
-    <tr><td class="route">GET /v1/data/supply/{token}</td><td>Total, circulating and burned supply with burn percentage — computed live from the chain.</td><td class="price">$0.003</td></tr>
-    <tr><td class="route">GET /v1/data/portfolio/{address}</td><td>ETH + canonical token balances (USDC, WETH, cbBTC, EURC) in one call.</td><td class="price">$0.004</td></tr>
-    <tr><td class="route">GET /v1/data/block</td><td>Latest Base block: number, timestamp, tx count, gas utilization.</td><td class="price">$0.001</td></tr>
-    <tr><td class="route">GET /v1/security/email/{domain}</td><td>Email-spoofing posture: live SPF / DMARC / DKIM record check. Is this counterparty's domain protected against impersonation?</td><td class="price">$0.01</td></tr>
-    <tr><td class="route">GET /v1/security/tls/{domain}</td><td>Live TLS certificate check — validity, issuer, expiry countdown. Reports certificate details; does not establish that an endpoint is trustworthy.</td><td class="price">$0.01</td></tr>
-    <tr><td class="route">GET /v1/security/typosquat/{domain}</td><td>Brand look-alike / homoglyph structural analysis — flags c0inbase, b1nance, metamask-support and similar phishing patterns.</td><td class="price">$0.005</td></tr>
-    <tr><td class="route">GET /v1/verify/payment/{txhash}</td><td>On-chain settlement verification on Base — decoded ERC-20 transfers, amounts, counterparties, confirmations.</td><td class="price">$0.02</td></tr>
-    <tr><td class="route">GET /v1/verify/token/{addr|symbol}</td><td>Canonical token check on Base (USDC, EURC, WETH, cbBTC, USDT) — anti-phishing for stablecoin payments.</td><td class="price">$0.005</td></tr>
-    <tr><td class="route">GET /v1/validate/lei/{lei}</td><td>ISO 17442 LEI checksum validation — entity identifiers used in EMIR/MiFID reporting.</td><td class="price">$0.002</td></tr>
-    <tr><td class="route">GET /v1/validate/isin/{isin}</td><td>ISO 6166 ISIN checksum validation for securities identifiers.</td><td class="price">$0.001</td></tr>
-    <tr><td class="route">GET /v1/validate/iban/{iban}</td><td>IBAN mod-97 checksum + per-country length rules, normalized BBAN.</td><td class="price">$0.001</td></tr>
-    <tr><td class="route">GET /v1/validate/vat/{vat}</td><td>EU VAT format for 27 registries + deterministic checksums (DE, IT, LU, PL, SI).</td><td class="price">$0.001</td></tr>
-    <tr><td class="route">GET /v1/validate/bic/{bic}</td><td>BIC/SWIFT structure check, decomposed bank / country / location / branch.</td><td class="price">$0.001</td></tr>
-    <tr><td class="route">POST /v1/doc/html-to-markdown</td><td>Clean Markdown from raw HTML.</td><td class="price">$0.002</td></tr>
-    <tr><td class="route">POST /v1/batch/validate</td><td>Validate up to 500 IBAN/VAT/BIC/LEI/ISIN identifiers in one call. One payment instead of 500, for reconciliation and onboarding runs.</td><td class="price">$0.10</td></tr>
-    <tr><td class="route">POST /v1/doc/diff</td><td>Structured diff — lines, words, or chars — with change hunks.</td><td class="price">$0.002</td></tr>
-  </table></div></details>
-<details id="try"><summary>Example payment flow</summary><p>Request a token check. The API first returns 402 Payment Required · $0.01 USDC. An x402 client can then retry with payment authorization.</p></details>
-<p id="portfolio">Also available: <a href="/traderails">TradeRails trade and logistics checks</a> and <a href="/pulse/#endpoints">Pulse observation APIs</a>.</p>
-<p><a href="https://cairnwake.com/r/0dc13f40.html">Independent conformance report (Cairn, 4 Sep 2026)</a>. Their record, not ours. It describes a test on that date.</p>
+<section id="developers"><h2 id="rates">Services &amp; prices</h2>
+<p id="portfolio">Pay per call in USDC on Base. The API returns the current quote before payment.</p>
+<div class="cv-grid cv-catalog-grid"><article id="chainverdict-prices" class="cv-catalog">
+<h3>ChainVerdict</h3>
+<p>Check Base tokens, wallets and payments, or validate financial identifiers.</p>
+<details><summary>20 API calls · 0.001–0.10 USDC</summary>
+<p class="cv-links"><a href="/openapi.json">ChainVerdict API reference</a><a href="/llms.txt">ChainVerdict agent guide</a></p>
+<div class="table-wrap" role="region" aria-label="ChainVerdict API calls and prices" tabindex="0"><table>
+    <tr><th scope="col">API call</th><th scope="col">What it returns</th><th scope="col">USDC</th></tr>
+    <tr><td class="route">GET /v1/token/verdict/{addr}</td><td>Token checks on Base: selected contract capabilities, ownership and metadata. Heuristic output; not a security audit.</td><td class="price">0.01</td></tr>
+    <tr><td class="route">GET /v1/wallet/dossier/{addr}</td><td>Wallet profile — EOA/contract, balance, activity band, behavioural flags, as-of block.</td><td class="price">0.01</td></tr>
+    <tr><td class="route">GET /v1/data/gas</td><td>Live Base gas oracle — base fee, priority fees, congestion level, estimated transfer cost. What agents check before transacting.</td><td class="price">0.002</td></tr>
+    <tr><td class="route">GET /v1/data/activity/{token}</td><td>Recent transfer count, volume, and unique wallet activity for a token on Base — observed activity, not proof of liquidity or demand.</td><td class="price">0.005</td></tr>
+    <tr><td class="route">GET /v1/data/supply/{token}</td><td>Total, circulating and burned supply with burn percentage — computed live from the chain.</td><td class="price">0.003</td></tr>
+    <tr><td class="route">GET /v1/data/portfolio/{address}</td><td>ETH + canonical token balances (USDC, WETH, cbBTC, EURC) in one call.</td><td class="price">0.004</td></tr>
+    <tr><td class="route">GET /v1/data/block</td><td>Latest Base block: number, timestamp, tx count, gas utilization.</td><td class="price">0.001</td></tr>
+    <tr><td class="route">GET /v1/security/email/{domain}</td><td>Email-spoofing posture: live SPF / DMARC / DKIM record check. Is this counterparty's domain protected against impersonation?</td><td class="price">0.01</td></tr>
+    <tr><td class="route">GET /v1/security/tls/{domain}</td><td>Live TLS certificate check — validity, issuer, expiry countdown. Reports certificate details; does not establish that an endpoint is trustworthy.</td><td class="price">0.01</td></tr>
+    <tr><td class="route">GET /v1/security/typosquat/{domain}</td><td>Brand look-alike / homoglyph structural analysis — flags c0inbase, b1nance, metamask-support and similar phishing patterns.</td><td class="price">0.005</td></tr>
+    <tr><td class="route">GET /v1/verify/payment/{txhash}</td><td>On-chain settlement verification on Base — decoded ERC-20 transfers, amounts, counterparties, confirmations.</td><td class="price">0.02</td></tr>
+    <tr><td class="route">GET /v1/verify/token/{addr|symbol}</td><td>Canonical token check on Base (USDC, EURC, WETH, cbBTC, USDT) — anti-phishing for stablecoin payments.</td><td class="price">0.005</td></tr>
+    <tr><td class="route">GET /v1/validate/lei/{lei}</td><td>ISO 17442 LEI checksum validation — entity identifiers used in EMIR/MiFID reporting.</td><td class="price">0.002</td></tr>
+    <tr><td class="route">GET /v1/validate/isin/{isin}</td><td>ISO 6166 ISIN checksum validation for securities identifiers.</td><td class="price">0.001</td></tr>
+    <tr><td class="route">GET /v1/validate/iban/{iban}</td><td>IBAN mod-97 checksum + per-country length rules, normalized BBAN.</td><td class="price">0.001</td></tr>
+    <tr><td class="route">GET /v1/validate/vat/{vat}</td><td>EU VAT format for 27 registries + deterministic checksums (DE, IT, LU, PL, SI).</td><td class="price">0.001</td></tr>
+    <tr><td class="route">GET /v1/validate/bic/{bic}</td><td>BIC/SWIFT structure check, decomposed bank / country / location / branch.</td><td class="price">0.001</td></tr>
+    <tr><td class="route">POST /v1/doc/html-to-markdown</td><td>Clean Markdown from raw HTML.</td><td class="price">0.002</td></tr>
+    <tr><td class="route">POST /v1/batch/validate</td><td>Validate up to 500 IBAN/VAT/BIC/LEI/ISIN identifiers in one call. One payment instead of 500, for reconciliation and onboarding runs.</td><td class="price">0.10</td></tr>
+    <tr><td class="route">POST /v1/doc/diff</td><td>Structured diff — lines, words, or chars — with change hunks.</td><td class="price">0.002</td></tr>
+  </table></div>
+</details>
+</article>
+<article id="traderails-prices" class="cv-catalog">
+<h3>TradeRails</h3>
+<p>Validate barcodes, containers and vessel numbers, or look up possible customs headings.</p>
+<details><summary>9 API calls · 0.004–0.05 USDC</summary>
+<p class="cv-links"><a href="https://trade.chainverdict.xyz/openapi.json">TradeRails API reference</a><a href="https://trade.chainverdict.xyz/llms.txt">TradeRails agent guide</a><a href="https://trade.chainverdict.xyz/retirement.json">Service lifecycle</a></p>
+<div class="table-wrap" role="region" aria-label="TradeRails API calls and prices" tabindex="0"><table><tr><th scope="col">API call</th><th scope="col">What it returns</th><th scope="col">USDC</th></tr>
+<tr><td>GET /v1/gtin/validate?code=</td><td>Validate GTIN-8/12/13/14, UPC-A, EAN-13 — check digit, format, GTIN-14, packaging indicator.</td><td>0.004</td></tr>
+<tr><td>GET /v1/gtin/checkdigit?body=</td><td>Compute the GS1 check digit for a code body that is missing it.</td><td>0.004</td></tr>
+<tr><td>GET /v1/gtin/prefix?code=</td><td>GS1 Member Organisation for a prefix. <em>(Numbering org — not country of origin.)</em></td><td>0.004</td></tr>
+<tr><td>GET /v1/sscc/validate?code=</td><td>SSCC-18 logistics-unit serial shipping container code.</td><td>0.004</td></tr>
+<tr><td>GET /v1/container/validate?code=</td><td>ISO 6346 shipping container number — owner, category, serial, check digit.</td><td>0.004</td></tr>
+<tr><td>GET /v1/imo/validate?code=</td><td>IMO ship identification number check digit.</td><td>0.004</td></tr>
+<tr><td>GET /v1/gs1/decode?data=</td><td>Decode a GS1 element string / GS1-128 (GTIN, batch, expiry, serial, weight). Human <code>(01)…(17)…</code> or raw FNC1.</td><td>0.006</td></tr>
+<tr><td>POST /v1/gs1/decode</td><td>Decode a GS1 element string from a JSON request body.</td><td>0.006</td></tr>
+<tr><td>GET /v1/hs/classify?q=</td><td>HS-code triage: ranked candidate headings + official text + GRI note. <em>Informational, not a customs ruling.</em></td><td>0.05</td></tr></table></div>
+</details>
+</article>
+<article id="pulse-prices" class="cv-catalog">
+<h3>Pulse</h3>
+<p>Look up how paid APIs have responded over time, with signed reports and historical data.</p>
+<details><summary>5 API calls · 0.03–0.50 USDC</summary>
+<p class="cv-links"><a href="https://pulse.chainverdict.xyz/openapi.json">Pulse API reference</a><a href="https://pulse.chainverdict.xyz/llms.txt">Pulse agent guide</a><a href="/pulse/status.html">Archive integrity</a></p>
+<div class="table-wrap" role="region" aria-label="Pulse API calls and prices" tabindex="0"><table><tr><th scope="col">API call</th><th scope="col">What it returns</th><th scope="col">USDC</th></tr>
+<tr><td>GET /v1/verdict?url=</td><td>Reliability, latency and payment terms from past observations.</td><td>0.03</td></tr>
+<tr><td>GET /v1/rankings</td><td>Compare tracked APIs by observed performance.</td><td>0.07</td></tr>
+<tr><td>GET /v1/attest?url=</td><td>A signed report on a tracked API.</td><td>0.12</td></tr>
+<tr><td>GET /v1/feed</td><td>Latest observations across all tracked APIs.</td><td>0.15</td></tr>
+<tr><td>GET /v1/archive/full</td><td>Archived observations and commitments. Some older records cannot be verified.</td><td>0.50</td></tr></table></div>
+</details>
+</article></div>
+<details id="try"><summary>How API payments work</summary><p>For example, a token check returns 402 Payment Required · $0.01 USDC. An x402 client can retry with payment authorization.</p></details>
+</section>
+<section id="how"><h2 id="tools">Free tools</h2>
+<ul><li><a href="/pulse/evidence.html#live-check">Check a live API</a> to see the payment terms it advertises.</li>
+<li><a href="/pulse/inspector.html">Compare requests in Inspector</a> to spot changes in price, recipient or other terms.</li>
+<li id="evidence"><a href="/pulse/purchase-evidence.html">Explore payment history</a> to see what Pulse observed and download the evidence.</li></ul>
+<p>Free tools never pay. An observation does not verify identity, authorize a purchase or confirm delivery.</p>
 </section></main>
-<div class="cv-footer"><nav aria-label="Footer"><a href="/pulse/">Pulse</a><a href="/traderails">TradeRails</a><a href="https://chainverdict.xyz/service-information">Privacy &amp; service information</a><a href="mailto:contact@chainverdict.xyz">Contact</a></nav></div></body></html>
+<div class="cv-footer"><nav aria-label="Footer"><a href="/pulse/verify.html">Verify a signature</a><a href="https://cairnwake.com/r/0dc13f40.html">Independent conformance report (Cairn, 4 Sep 2026)</a><a href="https://chainverdict.xyz/service-information">Privacy &amp; service information</a><a href="mailto:contact@chainverdict.xyz">Contact</a></nav></div></body></html>
