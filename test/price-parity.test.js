@@ -59,23 +59,18 @@ test('every rate-card price equals the served price for that route', async () =>
   assert.deepEqual(mismatches, [], 'landing page prices disagree with served prices');
 });
 
-test('the worked example in the hero quotes the real token/verdict price', async () => {
+test('the worked payment example quotes the real token/verdict price', async () => {
   const root = await rootEndpoints();
   const tv = root.endpoints.find((e) => e.route.startsWith('GET /v1/token/verdict'));
   assert.ok(tv, 'token/verdict is still sold');
   const m = html.match(/402 Payment Required[^<]*?(\$[0-9.]+)\s*USDC/);
-  assert.ok(m, 'the hero still shows a 402 quote');
-  assert.equal(m[1], tv.price, 'hero example price must be the real price');
+  assert.ok(m, 'the page still shows a 402 quote');
+  assert.equal(m[1], tv.price, 'example price must be the real price');
 });
 
-test('the portfolio section lists every route the other two services sell', () => {
-  const traderails = [
-    '/v1/gtin/validate', '/v1/gtin/checkdigit', '/v1/gtin/prefix', '/v1/sscc/validate',
-    '/v1/container/validate', '/v1/imo/validate', '/v1/gs1/decode', '/v1/hs/classify',
-  ];
-  const pulse = ['/v1/verdict', '/v1/rankings', '/v1/attest', '/v1/feed', '/v1/archive/full'];
-  const missing = [...traderails, ...pulse].filter((p) => !html.includes(p));
-  assert.deepEqual(missing, [], 'the main site must list the whole portfolio, not just its own routes');
+test('the homepage links to the separate TradeRails and Pulse catalogs', () => {
+  assert.ok(html.includes('href="https://trade.chainverdict.xyz/"'));
+  assert.ok(html.includes('href="https://pulse.chainverdict.xyz/#endpoints"'));
 });
 
 // The README is now the public front door of a public repository, and it was

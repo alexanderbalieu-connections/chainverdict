@@ -282,6 +282,8 @@ app.get("/", (req, res) => {
   health: "/health"
   });
 });
+app.get("/brand.css", (_req, res) => res.sendFile(join(__dir, "brand.css")));
+app.get("/service-information", (_req, res) => res.sendFile(join(__dir, "service-information.html")));
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now(), methodologyVersion: METHODOLOGY_VERSION }));
 // Public methodology: what each endpoint checks, its sources, freshness model,
 // confidence basis and limitations. Free by design — buyers should be able to
