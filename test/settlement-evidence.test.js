@@ -58,8 +58,8 @@ test('real Express payment middleware and SDK preserve request correlation', asy
   const { default: express } = await import('express');
   const { paymentMiddleware, x402ResourceServer } = await import('@x402/express');
   const { ExactEvmScheme } = await import('@x402/evm/exact/server');
-  const logs = []; let valid = false;
-  const p = settlementEvidence({ service: 'sdk-test', routeKeys: ['GET /paid/*'], log: s => logs.push(JSON.parse(s)) });
+  const logs = [], attempts = []; let valid = false;
+  const p = settlementEvidence({ service: 'sdk-test', routeKeys: ['GET /paid/*'], log: s => logs.push(JSON.parse(s)), logAttempt: s => attempts.push(JSON.parse(s)) });
   const resource = new x402ResourceServer({
     async getSupported() { return { kinds: [{ x402Version: 2, scheme: 'exact', network: 'eip155:8453' }], extensions: [], signers: {} }; },
     async verify() { return { isValid: valid, payer: '0x9999999999999999999999999999999999999999' }; },
@@ -78,6 +78,9 @@ test('real Express payment middleware and SDK preserve request correlation', asy
   assert.equal((await fetch(url, { headers })).status, 402); assert.equal(logs.length, 0);
   valid = true; const response = await fetch(url, { headers }); assert.equal(response.status, 200); await response.text();
   assert.equal(logs.length, 1); assert.equal(logs[0].transaction, tx);
+  assert.deepEqual(attempts.map(({ verify, settle, httpStatus }) => [verify, settle, httpStatus]),
+    [['failed', 'not_observed', 402], ['passed', 'passed', 200]]);
+  assert.doesNotMatch(JSON.stringify(attempts), /PRIVATE|synthetic|payer|authorization/);
   assert.equal(logs[0].route, 'GET /paid/*'); assert.equal(logs[0].outcome, 'settled_response_finished');
 });
 

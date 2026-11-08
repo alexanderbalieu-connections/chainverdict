@@ -223,7 +223,7 @@ function bazaarExtensionFor(route) {
 
 const settlementRecords = settlementBuffer();
 settlementRecords.install(app);
-const settlements = settlementEvidence({ service: 'chainverdict', onRecord: r => settlementRecords.add(r), routeKeys: Object.keys(PRICES) });
+const settlements = settlementEvidence({ service: 'chainverdict', logAttempt: console.log, onRecord: r => settlementRecords.add(r), routeKeys: Object.keys(PRICES) });
 app.use(paidCors(Object.keys(PRICES).filter(route => route !== "POST /mcp")));
 app.use(settlements.middleware);
 app.use(rejectPaidHead(Object.keys(PRICES)));

@@ -4,7 +4,7 @@ import { paidRouteMatchers } from './paid-route-matchers.js';
 // Private operational evidence, not a public customer/revenue counter. Independent
 // services vendor this small module deliberately; keep its regression tests aligned.
 // Transaction hashes can reveal the payer and amount on-chain: keep logs private.
-export function settlementEvidence({ service, routeKeys, onRecord = () => {}, log = console.log, now = () => new Date().toISOString() }) {
+export function settlementEvidence({ service, routeKeys, onRecord = () => {}, log = console.log, logAttempt = () => {}, now = () => new Date().toISOString() }) {
   const context = new AsyncLocalStorage();
   const routes = paidRouteMatchers(routeKeys);
   const emit = ctx => {
@@ -26,18 +26,35 @@ export function settlementEvidence({ service, routeKeys, onRecord = () => {}, lo
       const route = routes.find(r => req.method === r.method && r.pattern.test(req.path));
       if (!route) return next();
       const ctx = { route: route.key };
+      const paymentHeader = req.headers?.['payment-signature'] ? 'v2'
+        : req.headers?.['x-payment'] ? 'legacy' : null;
       let completed = false;
       const finish = outcome => {
         if (completed) return;
         completed = true;
         ctx.finished = outcome; ctx.status = res.headersSent ? res.statusCode : null; emit(ctx);
+        if (paymentHeader) {
+          try {
+            logAttempt(JSON.stringify({ event: 'chainverdict.payment-attempt.v1', at: now(), service,
+              route: ctx.route, paymentHeader, httpStatus: ctx.status, responseFinished: outcome === 'finish',
+              verify: ctx.verify ?? 'not_observed', settle: ctx.settle ?? 'not_observed' }));
+          } catch { /* Operational logging must not affect checkout. */ }
+        }
       };
       res.once('finish', () => finish('finish'));
       res.once('close', () => finish(res.writableFinished ? 'finish' : 'close'));
       return context.run(ctx, next);
     },
     attach(server) {
+      const mark = (stage, outcome) => {
+        const ctx = context.getStore();
+        if (ctx) ctx[stage] = outcome;
+      };
+      server.onAfterVerify?.(async ({ result }) => { mark('verify', result?.isValid ? 'passed' : 'failed'); });
+      server.onVerifyFailure?.(async () => { mark('verify', 'failed'); });
+      server.onSettleFailure?.(async () => { mark('settle', 'failed'); });
       server.onAfterSettle(async ({ result }) => {
+        mark('settle', result?.success ? 'passed' : 'failed');
         const ctx = context.getStore();
         if (!result?.success || !/^0x[0-9a-fA-F]{64}$/.test(result.transaction || '') ||
             !/^eip155:\d+$/.test(result.network || '')) return;

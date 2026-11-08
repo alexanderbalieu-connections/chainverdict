@@ -155,7 +155,7 @@ function bzExt(route) {
     });
   }
 
-  const settlements = settlementEvidence({ service: 'traderails', onRecord: r => settlementRecords.add(r), routeKeys: Object.keys(ROUTE_TABLE), log: message => log(message) });
+  const settlements = settlementEvidence({ service: 'traderails', logAttempt: console.log, onRecord: r => settlementRecords.add(r), routeKeys: Object.keys(ROUTE_TABLE), log: message => log(message) });
   if (!retired) app.use(settlements.middleware);
   if (!retired) app.use(rejectPaidHead(Object.keys(ROUTE_TABLE)));
 
