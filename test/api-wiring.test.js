@@ -31,6 +31,14 @@ test('real API launcher keeps both signing identities and unpaid gates separate'
     assert.match(preflight.headers['access-control-allow-headers'],/PAYMENT-SIGNATURE/);
     assert.equal(preflight.headers['payment-required'],undefined);
   }
+  for (const [host, url] of [
+    ['chainverdict.xyz','/v1/batch/validate'], ['chainverdict.xyz','/v1/doc/html-to-markdown'],
+    ['chainverdict.xyz','/v1/doc/diff'], ['trade.chainverdict.xyz','/v1/gs1/decode'],
+  ]) {
+    const response = await request(host,url,'POST',{'payment-signature':'intentionally-invalid'});
+    assert.equal(response.status,400);
+    assert.equal(response.headers['payment-required'],undefined);
+  }
   for (const bad of [':address', '%3Aaddress', '%7Baddress%7D', '0x123']) assert.equal((await request('chainverdict.xyz','/v1/token/verdict/'+bad)).status,400);
   assert.equal((await request('evil.test','/.well-known/signing-key.json')).status,404);
   const old=pids.traderails;assert.ok(old);process.kill(old,'SIGKILL');

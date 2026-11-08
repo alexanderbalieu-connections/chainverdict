@@ -159,6 +159,13 @@ function bzExt(route) {
   if (!retired) app.use(settlements.middleware);
   if (!retired) app.use(rejectPaidHead(Object.keys(ROUTE_TABLE)));
 
+  if (!retired) app.post('/v1/gs1/decode', (req, res, next) => {
+    if (typeof req.body?.data !== 'string' || !req.body.data.trim()) {
+      return res.status(400).json({ error: 'body.data (non-empty string) required' });
+    }
+    next();
+  });
+
   if (paidMode) {
     let facilitatorClient = config.facilitatorClient ?? null;
     if (!facilitatorClient) {

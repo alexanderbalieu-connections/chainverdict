@@ -229,6 +229,25 @@ app.use(settlements.middleware);
 app.use(rejectPaidHead(Object.keys(PRICES)));
 app.use(rejectInvalidPaidPath(BAZAAR_ROUTES));
 
+// Reject malformed request bodies before asking the buyer to sign.
+app.post("/v1/batch/validate", (req, res, next) => {
+  const items = req.body?.items;
+  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: "body.items (array) required, e.g. [{type:'iban',value:'...'}]" });
+  if (items.length > 500) return res.status(400).json({ error: "max 500 items per batch" });
+  next();
+});
+app.post("/v1/doc/html-to-markdown", (req, res, next) => {
+  const html = req.body?.html;
+  if (typeof html !== "string") return res.status(400).json({ error: "body.html (string) required" });
+  next();
+});
+app.post("/v1/doc/diff", (req, res, next) => {
+  const { a, b } = req.body || {};
+  if (typeof a !== "string" || typeof b !== "string")
+    return res.status(400).json({ error: "body.a and body.b (strings) required" });
+  next();
+});
+
 if (X402_ENABLED) {
   if (!PAY_TO) { console.error("PAY_TO_ADDRESS is required when X402_ENABLED"); process.exit(1); }
   const facilitatorClient = USE_CDP
@@ -441,8 +460,6 @@ app.get("/v1/validate/isin/:isin", (req, res) => res.json(enrich("isin", validat
 // ---- Paid: batch validation (up to 500 items) ----
 app.post("/v1/batch/validate", (req, res) => {
   const items = req.body?.items;
-  if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: "body.items (array) required, e.g. [{type:'iban',value:'...'}]" });
-  if (items.length > 500) return res.status(400).json({ error: "max 500 items per batch" });
   const runners = { iban: validateIBAN, vat: validateVAT, bic: validateBIC, lei: validateLEI, isin: validateISIN };
   const results = items.map((it, i) => {
     const fn = runners[String(it?.type || "").toLowerCase()];
@@ -476,13 +493,10 @@ app.get("/v1/security/typosquat/:domain", (req, res) => res.json(enrich("securit
 const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
 app.post("/v1/doc/html-to-markdown", (req, res) => {
   const html = req.body?.html;
-  if (typeof html !== "string") return res.status(400).json({ error: "body.html (string) required" });
   res.json({ markdown: turndown.turndown(html), chars_in: html.length });
 });
 app.post("/v1/doc/diff", (req, res) => {
   const { a, b, mode = "lines" } = req.body || {};
-  if (typeof a !== "string" || typeof b !== "string")
-    return res.status(400).json({ error: "body.a and body.b (strings) required" });
   const fn = mode === "words" ? Diff.diffWords : mode === "chars" ? Diff.diffChars : Diff.diffLines;
   const parts = fn(a, b).map(p => ({ value: p.value, added: !!p.added, removed: !!p.removed }));
   const changed = parts.filter(p => p.added || p.removed).length;
