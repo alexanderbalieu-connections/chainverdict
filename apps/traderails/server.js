@@ -1,3 +1,4 @@
+import { paidCors } from "./lib/paid-cors.js";
 import { settlementBuffer } from './lib/settlement-buffer.js';
 import { settlementEvidence } from './lib/settlement-evidence.js';
 import { rejectPaidHead } from './lib/reject-paid-head.js';
@@ -140,6 +141,7 @@ function bzExt(route) {
   } catch (e) { console.error(`[traderails] bazaar declaration failed for ${route}:`, e.message); return undefined; }
 }
 
+  app.use(paidCors(Object.keys(ROUTE_TABLE)));
   // A manual retirement switch intercepts the same route table BEFORE payment.
   // No date-based switch: a review and coordinated portfolio update are required.
   for (const rk of Object.keys(ROUTE_TABLE)) {

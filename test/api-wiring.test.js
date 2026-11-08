@@ -13,13 +13,24 @@ test('real API launcher keeps both signing identities and unpaid gates separate'
  const env={PATH:process.env.PATH,HOME:os.tmpdir(),...base,ATTEST_PRIVATE_KEY:keys.pulse,DATA_DIR:dir,PORT:'0',ENABLE_SCHEDULER:'0',ENABLE_BAZAAR_SYNC:'0',CHAINVERDICT_LEGACY_CONFIG:JSON.stringify({...base,SIGNING_KEY_PKCS8_B64:keys.chainverdict}),TRADERAILS_LEGACY_CONFIG:JSON.stringify({...base,SIGNING_KEY_PKCS8_B64:keys.traderails})};
  const processChild=fork(new URL('../scripts/serve-apis.mjs',import.meta.url),[],{env,execArgv:['--max-old-space-size=64'],stdio:['ignore','pipe','pipe','ipc']});let port,exited=false;const pids={};processChild.on('exit',()=>{exited=true;});processChild.on('message',m=>{if(m.childReady)pids[m.childReady]=m.pid;if(m.childExited)delete pids[m.childExited];});
  processChild.stdout.on('data',b=>{const m=String(b).match(/portfolio gateway listening on (\d+)/);if(m)port=Number(m[1]);});processChild.stderr.on('data',()=>{});
- const request=(host,url)=>new Promise((resolve,reject)=>{const req=http.get({hostname:'127.0.0.1',port,path:url,headers:{host}},res=>{const chunks=[];res.on('data',b=>chunks.push(b));res.on('end',()=>resolve({status:res.statusCode,body:Buffer.concat(chunks).toString(),headers:res.headers}));});req.on('error',reject);req.setTimeout(2000,()=>req.destroy(Error('request timeout')));});
+ const request=(host,url,method='GET',headers={})=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port,path:url,method,headers:{host,...headers}},res=>{const chunks=[];res.on('data',b=>chunks.push(b));res.on('end',()=>resolve({status:res.statusCode,body:Buffer.concat(chunks).toString(),headers:res.headers}));});req.on('error',reject);req.setTimeout(2000,()=>req.destroy(Error('request timeout')));req.end();});
  try{
   const until=Date.now()+25000;let ready=false;while(Date.now()<until&&!exited){if(port){try{ready=(await request('localhost','/_portfolio/health')).status===200;}catch{}}if(ready)break;await sleep(100);}
   assert.ok(ready,'both children become ready');
   const main=await request('chainverdict.xyz','/.well-known/signing-key.json');assert.equal(main.status,200);assert.equal(JSON.parse(main.body).public_key_spki_b64,createPublicKey(createPrivateKey({key:Buffer.from(keys.chainverdict,'base64'),format:'der',type:'pkcs8'})).export({format:'der',type:'spki'}).toString('base64'));
   for(const [role,host]of [['traderails','trade.chainverdict.xyz']]){const r=await request(host,'/.well-known/signing-key.json');assert.equal(r.status,200);assert.equal(JSON.parse(r.body).keys[0].x,jwk(keys[role]).x);}
-  for(const [host,url]of [['chainverdict.xyz','/v1/validate/iban/DE89370400440532013000'],['trade.chainverdict.xyz','/v1/imo/validate?code=9074729']])assert.equal((await request(host,url)).status,402);
+  for (const [host,url] of [['chainverdict.xyz','/v1/validate/iban/DE89370400440532013000'],['trade.chainverdict.xyz','/v1/imo/validate?code=9074729']]) {
+    const origin = { origin: 'https://buyer.example' };
+    const quote = await request(host,url,'GET',origin);
+    assert.equal(quote.status,402);
+    assert.equal(quote.headers['access-control-allow-origin'],'*');
+    assert.match(quote.headers['access-control-expose-headers'],/PAYMENT-REQUIRED/);
+    assert.equal(quote.headers['access-control-allow-credentials'],undefined);
+    const preflight = await request(host,url,'OPTIONS',{...origin,'access-control-request-method':'GET','access-control-request-headers':'payment-signature'});
+    assert.equal(preflight.status,204);
+    assert.match(preflight.headers['access-control-allow-headers'],/PAYMENT-SIGNATURE/);
+    assert.equal(preflight.headers['payment-required'],undefined);
+  }
   for (const bad of [':address', '%3Aaddress', '%7Baddress%7D', '0x123']) assert.equal((await request('chainverdict.xyz','/v1/token/verdict/'+bad)).status,400);
   assert.equal((await request('evil.test','/.well-known/signing-key.json')).status,404);
   const old=pids.traderails;assert.ok(old);process.kill(old,'SIGKILL');

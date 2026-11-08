@@ -1,3 +1,4 @@
+import { paidCors } from "./lib/paid-cors.js";
 import { pulseWebsite } from "./pulse-website.js";
 import { settlementBuffer } from './lib/settlement-buffer.js';
 import { settlementEvidence } from './lib/settlement-evidence.js';
@@ -223,6 +224,7 @@ function bazaarExtensionFor(route) {
 const settlementRecords = settlementBuffer();
 settlementRecords.install(app);
 const settlements = settlementEvidence({ service: 'chainverdict', onRecord: r => settlementRecords.add(r), routeKeys: Object.keys(PRICES) });
+app.use(paidCors(Object.keys(PRICES).filter(route => route !== "POST /mcp")));
 app.use(settlements.middleware);
 app.use(rejectPaidHead(Object.keys(PRICES)));
 app.use(rejectInvalidPaidPath(BAZAAR_ROUTES));
